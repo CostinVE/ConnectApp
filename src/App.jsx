@@ -7,6 +7,7 @@ import {
   Link
 } from "react-router-dom";
 import Auth from './components/auth';
+import { body } from './Layout';
 
 function App() {
   return (

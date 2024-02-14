@@ -6,6 +6,8 @@ import "./index.css"; // Import your global CSS file
 import Auth from "./components/auth";
 import SignIn from "./components/signIn";
 import { MainFeed } from "./components/MainFeed";
+import Layout from "./Layout";
+import { Sidebar } from "./components/Sidebar";
 
 const router = createBrowserRouter([
   {
@@ -22,7 +24,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/ConnectApp",
-    element: <MainFeed />,
+    element: <Layout><Sidebar/><MainFeed /></Layout>
   },
 ]);
 
