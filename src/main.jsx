@@ -8,6 +8,7 @@ import SignIn from "./components/signIn";
 import { MainFeed } from "./components/MainFeed";
 import Layout from "./Layout";
 import { Sidebar } from "./components/Sidebar";
+import { ChooseUsername } from "./components/ChooseUsername";
 
 const router = createBrowserRouter([
   {
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
   {
     path: "/SignIn",
     element: <SignIn />,
+  },
+  {
+    path: "/ChooseUsername",
+    element: <ChooseUsername />,
   },
   {
     path: "/ConnectApp",

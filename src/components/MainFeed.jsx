@@ -12,6 +12,7 @@ import React, { useState, useEffect } from "react";
 import '../index.css';
 import { database, auth } from '../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs} from 'firebase/firestore';
+import { getUserByUserID } from "./getUserByUsername.jsx";
 
 export const MainFeed = () => {
   
@@ -22,13 +23,8 @@ export const MainFeed = () => {
 
   const getUserName = async (userID) => {
     try {
-      const userDoc = await doc(database, 'users', userID).get();
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        return userData.name || userData.email; // Use username if available, otherwise use email
-      } else {
-        return 'Unknown User';
-      }
+      const user = await getUserByUsername(userID);
+      return user ? user.username : 'Unknown User';
     } catch (error) {
       console.error('Error fetching user:', error);
       return 'Unknown User';
@@ -67,23 +63,40 @@ export const MainFeed = () => {
     getTweetList(); 
   }, []); 
 
-
-
+  
   const onPost = async () => {
-    const userName = await getUserName(auth?.currentUser?.uid);
     try {
-      await addDoc(tweetCollectionRef, {
-        Post: newPost,
-        Likes: 0,
-        Timestamp: generateTimestamp(), // Get the current timestamp
-        UserId: auth?.currentUser?.uid,
-        UserName: userName
-      });
-      setNewPost(''); // Clear the input field after posting
+      // Get the current user's UID
+      const userID = auth?.currentUser?.uid;
+  
+      // Get the user's username based on the UID
+      const user = await getUserByUserID(userID);
+  
+      // Check if the user data is available
+      if (user) {
+        // Extract the userID and username
+        const { userID, username } = user;
+  
+        // Add the post to the tweet collection
+        await addDoc(tweetCollectionRef, {
+          Post: newPost,
+          Likes: 0,
+          Timestamp: generateTimestamp(),
+          UserId: userID,
+          UserName: username
+        });
+  
+        // Clear the input field after posting
+        setNewPost('');
+      } else {
+        console.error('User not found');
+      }
     } catch (err) {
       console.error(err);
     }
   };
+  
+  
 
   
 
@@ -122,16 +135,16 @@ export const MainFeed = () => {
       </section>
       {/* Feed space */}
       <section className="flex-col w-full">
-      {tweetList.map((tweet) => (
-        <div className="flex-col" key={tweet.id}> {/* Make sure to add a unique key for each rendered element */}
-        <div className="flex flex-row my-5">
+      {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => (
+        <div className="flex-col p-3 Shadow" key={tweet.id}> {/* Make sure to add a unique key for each rendered element */}
+        <div className="flex flex-row my-5 S">
          <img
           src={avatarIMG}
           className="col-start-1 col-end-1 row-start-1 row-end-2"
           style={{ height: "32px", borderRadius: "50%",}}
           alt="User Avatar"
         />
-        <p className="lato-bold"> &nbsp; {tweet.Username}</p>
+        <p className="lato-bold"> &nbsp;&nbsp; {tweet.UserName}</p>
         </div>
         <p className="flex flex-col my-5">{tweet.Post}</p>
         <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
