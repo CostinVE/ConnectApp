@@ -5,10 +5,11 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css"; // Import your global CSS file
 import Auth from "./components/auth";
 import SignIn from "./components/signIn";
-import { MainFeed } from "./components/MainFeed";
+import { MainFeed } from "./components/FeedComponents/MainFeed"; // Update import path
 import Layout from "./Layout";
 import { Sidebar } from "./components/Sidebar";
-import { ChooseUsername } from "./components/ChooseUsername";
+import { ChooseUsername } from "./components/ChooseUsername"; // Update import path
+import { CommentForm } from "./components/FeedComponents/CommentForm";
 
 const router = createBrowserRouter([
   {
@@ -25,11 +26,15 @@ const router = createBrowserRouter([
   },
   {
     path: "/ChooseUsername",
-    element: <ChooseUsername />,
+    element: <ChooseUsername />, // Update import path
   },
   {
     path: "/ConnectApp",
-    element: <Layout><Sidebar/><MainFeed /></Layout>
+    element: <Layout><Sidebar/><MainFeed /></Layout>, // Update import path
+  },
+  {
+    path: "/ConnectApp/Comment",
+    element: <Layout><Sidebar/><CommentForm/></Layout>, // Update import path
   },
 ]);
 

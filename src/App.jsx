@@ -13,7 +13,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path={"/About"} exact element={<About />} />
       </Routes>
     </Router>
   );

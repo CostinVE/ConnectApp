@@ -1,18 +1,16 @@
-import avatarIMG from "../assets/avatarIMG.png";
-import gifPNG from "../assets/gif.png";
-import emojiPNG from "../assets/smile.png";
-import pollPNG from "../assets/polling.png";
-import imagePNG from "../assets/imageupload.png";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHeart, faRepeat } from "@fortawesome/free-solid-svg-icons";
-import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
+import avatarIMG from "../../assets/avatarIMG.png"; // Adjust the import path
+import gifPNG from "../../assets/gif.png"; // Adjust the import path
+import emojiPNG from "../../assets/smile.png"; // Adjust the import path
+import pollPNG from "../../assets/polling.png"; // Adjust the import path
+import imagePNG from "../../assets/imageupload.png"; // Adjust the import path
 
 
-import React, { useState, useEffect } from "react";
-import '../index.css';
-import { database, auth } from '../config/firebase.jsx';
+import React, { useState,} from "react";
+import '../../index.css';
+import { database, auth } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs} from 'firebase/firestore';
 import { getUserByUserID } from "./getUserByUsername.jsx";
+import TweetComponent from "./TweetComponent.jsx";
 
 export const MainFeed = () => {
   
@@ -21,15 +19,6 @@ export const MainFeed = () => {
 
   const tweetCollectionRef = collection(database, "tweets");
 
-  const getUserName = async (userID) => {
-    try {
-      const user = await getUserByUsername(userID);
-      return user ? user.username : 'Unknown User';
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      return 'Unknown User';
-    }
-  };
   
 
   const generateTimestamp = () => {
@@ -46,23 +35,6 @@ export const MainFeed = () => {
     return `${timeString}, ${dateString}`;
   };
   
-
-  useEffect(() => {
-    const getTweetList = async () => {
-       const userName = await getUserName(auth?.currentUser?.uid);
-      try {
-        const data = await getDocs(tweetCollectionRef);
-        const filteredData = data.docs.map(doc => ({...doc.data(), id: doc.id}));
-        console.log(filteredData);
-        setTweetList(filteredData)
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    getTweetList(); 
-  }, []); 
-
   
   const onPost = async () => {
     try {
@@ -97,9 +69,6 @@ export const MainFeed = () => {
   };
   
   
-
-  
-
   return (
     <div className="flex-none flex-col w-5/12 lato-regular ">
       <div className="grid w-9/12 grid-cols-2 gap-x-2 my-5">
@@ -135,25 +104,7 @@ export const MainFeed = () => {
       </section>
       {/* Feed space */}
       <section className="flex-col w-full">
-      {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => (
-        <div className="flex-col p-3 Shadow" key={tweet.id}> {/* Make sure to add a unique key for each rendered element */}
-        <div className="flex flex-row my-5 S">
-         <img
-          src={avatarIMG}
-          className="col-start-1 col-end-1 row-start-1 row-end-2"
-          style={{ height: "32px", borderRadius: "50%",}}
-          alt="User Avatar"
-        />
-        <p className="lato-bold"> &nbsp;&nbsp; {tweet.UserName}</p>
-        </div>
-        <p className="flex flex-col my-5">{tweet.Post}</p>
-        <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
-        <div className="flex flex-row w-full justify-evenly ">
-          <p><FontAwesomeIcon icon={faComment} style={{color: "#3f44d9",}} /></p>
-          <p><FontAwesomeIcon icon={faRepeat} rotation={90} style={{color: "#28d74b",}} /></p>
-          <p><FontAwesomeIcon icon={faHeart} style={{color: "#e60f4f",}} /> {tweet.Likes}</p></div>
-          <p><FontAwesomeIcon icon={faBookmark} style={{color: "#3f44d9",}}/></p>
-        </div>))}
+      <TweetComponent />
       </section>
     </div>
   );
