@@ -9,7 +9,7 @@ import { MainFeed } from "./components/FeedComponents/MainFeed"; // Update impor
 import Layout from "./Layout";
 import { Sidebar } from "./components/Sidebar";
 import { ChooseUsername } from "./components/ChooseUsername"; // Update import path
-import { CommentForm } from "./components/FeedComponents/CommentForm";
+
 
 const router = createBrowserRouter([
   {
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/ConnectApp/Comment",
-    element: <Layout><Sidebar/><CommentForm/></Layout>, // Update import path
+    element: <Layout><Sidebar/></Layout>, // Update import path
   },
 ]);
 
