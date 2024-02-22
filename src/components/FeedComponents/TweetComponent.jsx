@@ -3,6 +3,7 @@ import '../../index.css';
 import { database, auth } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs, doc} from 'firebase/firestore';
 import { getUserByUserID } from "./getUserByUsername.jsx";
+import { fetchComments } from "./FetchComments.jsx";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faRepeat, faXmark } from "@fortawesome/free-solid-svg-icons";
@@ -15,8 +16,20 @@ import imagePNG from "../../assets/imageupload.png";
 
 const TweetComponent = () => {
   const [tweetList, setTweetList] = useState([]);
+  const [comments, setComments] = useState([]);
   const [isCommentFormOpen, setCommentFormOpen] = useState(false);
   const tweetCollectionRef = collection(database, "tweets");
+
+  const getUserName = async (userID) => {
+    try {
+      const user = await getUserByUserID(userID);
+      return user ? user.username : 'Unknown User';
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return 'Unknown User';
+    }
+  };
+
 
   const openCommentForm = () => {
     setCommentFormOpen(true);
@@ -37,30 +50,38 @@ const TweetComponent = () => {
 
   const CommentForm = () => {
     const [newPost, setNewPost] = useState('');
-
+    const [user, setUser] = useState(null); // State to store user data
+  
+    useEffect(() => {
+      const fetchUserData = async () => {
+        try {
+          const userID = auth?.currentUser?.uid;
+          const userData = await getUserByUserID(userID);
+          setUser(userData);
+        } catch (error) {
+          console.error('Error fetching user:', error);
+        }
+      };
+  
+      fetchUserData(); // Fetch user data when component mounts
+    }, []);
+  
     const addCommentToTweet = async (commentText) => {
       try {
-        // Get the query snapshot of tweets
         const querySnapshot = await getDocs(tweetCollectionRef);
-        
-        // Initialize an array to store tweet IDs
         const tweetIds = [];
     
-        // Iterate over the query snapshot to extract document IDs
         querySnapshot.forEach((doc) => {
           tweetIds.push(doc.id);
         });
     
-        // Loop through each tweet ID to add comments
         tweetIds.forEach(async (tweetId) => {
           try {
-            // Get reference to the parent tweet document
             const parentDocRef = doc(database, 'tweets', tweetId);
-    
-            // Add a new document to the "comments" subcollection with the comment text
             await addDoc(collection(parentDocRef, 'comments'), {
               commentText: newPost,
-              // You can add more fields to the comment document if needed
+              Likes: 0,
+              Username: user ? user.username : 'Unknown' // Use user.username if user is defined, otherwise default to 'Unknown'
             });
     
             console.log('Comment added successfully to tweet with ID:', tweetId);
@@ -72,6 +93,7 @@ const TweetComponent = () => {
         console.error('Error getting tweets:', error);
       }
     };
+
     
 
     return (
@@ -107,15 +129,6 @@ const TweetComponent = () => {
     );
   };
 
-  const getUserName = async (userID) => {
-    try {
-      const user = await getUserByUserID(userID);
-      return user ? user.username : 'Unknown User';
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      return 'Unknown User';
-    }
-  };
 
   const generateTimestamp = () => {
     return Timestamp.now(); // This will give you the current timestamp
@@ -137,7 +150,11 @@ const TweetComponent = () => {
         const filteredData = data.docs.map(doc => ({...doc.data(), id: doc.id,}));
         const tweetDocumentIds = data.docs.map(doc => doc.id);
         console.log("Document IDs associated with tweets:", tweetDocumentIds);
-        setTweetList(filteredData)
+        setTweetList(filteredData);
+  
+        // Fetch comments for each tweet
+        const commentsData = await fetchComments();
+        setComments(commentsData);
       } catch (err) {
         console.error(err);
       }
@@ -146,32 +163,85 @@ const TweetComponent = () => {
     getTweetList(); 
   }, []); 
 
-  return (
-    <>
-      {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => (
-        <div className="flex-col p-3 Shadow" key={tweet.id}>
-          <div className="flex flex-row my-5 S">
-            <img
-              src={avatarIMG}
-              className="col-start-1 col-end-1 row-start-1 row-end-2"
-              style={{ height: "32px", borderRadius: "50%" }}
-              alt="User Avatar"
-            />
-            <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
-          </div>
-          <p className="flex flex-col my-5">{tweet.Post}</p>
-          <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
-          <div className="flex flex-row w-full justify-evenly">
-            <button type="button"  onClick={openCommentForm}><FontAwesomeIcon icon={faComment} style={{ color: "#3f44d9" }} /></button>
-            <p><FontAwesomeIcon icon={faRepeat} rotation={90} style={{ color: "#28d74b" }} /></p>
-            <p><FontAwesomeIcon icon={faHeart} style={{ color: "#e60f4f" }} /> {tweet.Likes}</p>
-          </div>
-          <p><FontAwesomeIcon icon={faBookmark} style={{ color: "#3f44d9" }} /></p>
-          {isCommentFormOpen && <CommentForm />}
-        </div>
-      ))}
-    </>
-  );
+  
+    
+
+  const handleShowDivClick = (id) => {
+    const commentDiv = document.getElementById(`commentDiv-${id}`);
+    if (commentDiv) {
+        commentDiv.style.display = 'block';
+    }
 };
 
+const handleHideDivClick = (id) => {
+    const commentDiv = document.getElementById(`commentDiv-${id}`);
+    if (commentDiv) {
+        commentDiv.style.display = 'none';
+    }
+};
+
+
+
+    
+
+    return (
+      <>
+        {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => (
+          <div key={tweet.id}>
+            <div className="flex-col p-3 Shadow">
+              {console.log(tweet.id)}
+              <div className="flex flex-row my-5">
+                <img
+                  src={avatarIMG}
+                  className="col-start-1 col-end-1 row-start-1 row-end-2"
+                  style={{ height: "32px", borderRadius: "50%" }}
+                  alt="User Avatar"
+                />
+                <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
+              </div>
+              <p className="flex flex-col my-5">{tweet.Post}</p>
+              <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
+              <div className="flex flex-row w-full justify-evenly">
+                <button type="button" onClick={openCommentForm}>
+                  <FontAwesomeIcon icon={faComment} style={{ color: "#3f44d9" }} />
+                </button>
+                <p><FontAwesomeIcon icon={faRepeat} rotation={90} style={{ color: "#28d74b" }} /></p>
+                <p><FontAwesomeIcon icon={faHeart} style={{ color: "#e60f4f" }} /> {tweet.Likes}</p>
+                <p><FontAwesomeIcon icon={faBookmark} style={{ color: "#3f44d9" }} /></p>
+              </div>
+              {isCommentFormOpen && <CommentForm />}
+            </div>
+            <div className="commentDiv" id={`commentDiv-${tweet.id}`} style={{ display: 'none', top: '100%', left: '0', backgroundColor: 'white', padding: '10px' }}>
+            {comments.map((commentBlock, index) => (
+  <div key={index}>
+    {Array.isArray(commentBlock) ? (
+      commentBlock.map((comment, idx) => (
+        <div key={idx}>
+          <p>{comment.commentText}</p>
+          <p>{comment.Username}</p>
+          <p>{comment.Likes}</p>
+        </div>
+      ))
+    ) : (
+      <p>{commentBlock}</p>
+    )}
+  </div>
+))}
+
+        </div>
+            <div className="w-full p-1 Shadow text-center">
+            <button className="text-indigo-600" onClick={() => handleShowDivClick(tweet.id)}>Show Comments</button>
+        </div>
+          </div>
+        ))}
+      </>
+    );
+}
+
+
 export default TweetComponent;
+{/* <div>
+  <p>comment.commentText</p>
+  <p>comment.Username</p>
+  <p>comment.Likes</p>
+</div> */}

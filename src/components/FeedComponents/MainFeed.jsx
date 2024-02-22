@@ -41,21 +41,18 @@ export const MainFeed = () => {
       // Get the current user's UID
       const userID = auth?.currentUser?.uid;
   
-      // Get the user's username based on the UID
+      // Get the user data based on the UID
       const user = await getUserByUserID(userID);
   
       // Check if the user data is available
       if (user) {
-        // Extract the userID and username
-        const { userID, username } = user;
-  
         // Add the post to the tweet collection
         await addDoc(tweetCollectionRef, {
           Post: newPost,
           Likes: 0,
           Timestamp: generateTimestamp(),
           UserId: userID,
-          UserName: username
+          UserName: user.username // Use user.username directly
         });
   
         // Clear the input field after posting
@@ -67,6 +64,7 @@ export const MainFeed = () => {
       console.error(err);
     }
   };
+  
   
   
   return (
