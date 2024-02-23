@@ -5,10 +5,13 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css"; // Import your global CSS file
 import Auth from "./components/auth";
 import SignIn from "./components/signIn";
-import { MainFeed } from "./components/FeedComponents/MainFeed"; // Update import path
+import { MainFeed } from "./components/FeedComponents/MainFeed"; 
 import Layout from "./Layout";
 import { Sidebar } from "./components/Sidebar";
-import { ChooseUsername } from "./components/ChooseUsername"; // Update import path
+import { ChooseUsername } from "./components/ChooseUsername"; 
+import { ProfilePage } from "./components/ProfilePage";
+
+
 
 
 const router = createBrowserRouter([
@@ -27,6 +30,14 @@ const router = createBrowserRouter([
   {
     path: "/ChooseUsername",
     element: <ChooseUsername />, // Update import path
+  },
+  {
+    path: "/ConnectApp/Profile",
+    element:  <Layout>
+      <Sidebar/>
+      <ProfilePage />
+      </Layout>
+    
   },
   {
     path: "/ConnectApp",

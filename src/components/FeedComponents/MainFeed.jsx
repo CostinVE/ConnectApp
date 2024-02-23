@@ -9,7 +9,7 @@ import React, { useState,} from "react";
 import '../../index.css';
 import { database, auth } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs} from 'firebase/firestore';
-import { getUserByUserID } from "./getUserByUsername.jsx";
+import { getUserByUserID } from "../getUserByUsername.jsx";
 import TweetComponent from "./TweetComponent.jsx";
 
 export const MainFeed = () => {

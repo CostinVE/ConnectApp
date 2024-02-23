@@ -16,13 +16,15 @@ export const fetchComments = async () => {
       const commentsData = commentSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
+          id: doc.id, // Add comment ID
+          tweetId: tweetId, // Add parent tweet ID
           commentText: data.commentText,
           Username: data.Username,
           Likes: data.Likes
         };
       });
       
-      return commentSnapshot.empty ? 'No comments available' : commentsData;
+      return commentsData;
     });
 
     console.log(`Mapping comments data`);

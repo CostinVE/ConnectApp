@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import '../../index.css';
 import { database, auth } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs, doc} from 'firebase/firestore';
-import { getUserByUserID } from "./getUserByUsername.jsx";
+import { getUserByUserID } from "../getUserByUsername.jsx";
 import { fetchComments } from "./FetchComments.jsx";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -66,31 +66,18 @@ const TweetComponent = () => {
       fetchUserData(); // Fetch user data when component mounts
     }, []);
   
-    const addCommentToTweet = async (commentText) => {
+    const addCommentToTweet = async () => {
       try {
-        const querySnapshot = await getDocs(tweetCollectionRef);
-        const tweetIds = [];
-    
-        querySnapshot.forEach((doc) => {
-          tweetIds.push(doc.id);
+        // Add the comment only to the tweet that is currently being interacted with
+        const parentDocRef = doc(database, 'tweets', tweetList[0].id); // Change the index as needed
+        await addDoc(collection(parentDocRef, 'comments'), {
+          commentText: newPost,
+          Likes: 0,
+          Username: user ? user.username : 'Unknown'
         });
-    
-        tweetIds.forEach(async (tweetId) => {
-          try {
-            const parentDocRef = doc(database, 'tweets', tweetId);
-            await addDoc(collection(parentDocRef, 'comments'), {
-              commentText: newPost,
-              Likes: 0,
-              Username: user ? user.username : 'Unknown' // Use user.username if user is defined, otherwise default to 'Unknown'
-            });
-    
-            console.log('Comment added successfully to tweet with ID:', tweetId);
-          } catch (error) {
-            console.error('Error adding comment to tweet with ID:', tweetId, error);
-          }
-        });
+        console.log('Comment added successfully to tweet with ID:', tweetList[0].id);
       } catch (error) {
-        console.error('Error getting tweets:', error);
+        console.error('Error adding comment to tweet:', error);
       }
     };
 
@@ -179,69 +166,69 @@ const handleHideDivClick = (id) => {
         commentDiv.style.display = 'none';
     }
 };
-
-
-
-    
-
-    return (
-      <>
-        {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => (
-          <div key={tweet.id}>
-            <div className="flex-col p-3 Shadow">
-              {console.log(tweet.id)}
-              <div className="flex flex-row my-5">
-                <img
-                  src={avatarIMG}
-                  className="col-start-1 col-end-1 row-start-1 row-end-2"
-                  style={{ height: "32px", borderRadius: "50%" }}
-                  alt="User Avatar"
-                />
-                <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
-              </div>
-              <p className="flex flex-col my-5">{tweet.Post}</p>
-              <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
-              <div className="flex flex-row w-full justify-evenly">
-                <button type="button" onClick={openCommentForm}>
-                  <FontAwesomeIcon icon={faComment} style={{ color: "#3f44d9" }} />
-                </button>
-                <p><FontAwesomeIcon icon={faRepeat} rotation={90} style={{ color: "#28d74b" }} /></p>
-                <p><FontAwesomeIcon icon={faHeart} style={{ color: "#e60f4f" }} /> {tweet.Likes}</p>
-                <p><FontAwesomeIcon icon={faBookmark} style={{ color: "#3f44d9" }} /></p>
-              </div>
-              {isCommentFormOpen && <CommentForm />}
+return (
+  <>
+    {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => {
+      const tweetComments = comments.filter((commentBlock) => commentBlock[0]?.tweetId === tweet.id);
+      return (
+        <div key={tweet.id}>
+          <div className="flex-col p-3 Shadow">
+            {console.log(tweet.id)}
+            <div className="flex flex-row my-5">
+              <img
+                src={avatarIMG}
+                className="col-start-1 col-end-1 row-start-1 row-end-2"
+                style={{ height: "32px", borderRadius: "50%" }}
+                alt="User Avatar"
+              />
+              <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
             </div>
-            <div className="commentDiv" id={`commentDiv-${tweet.id}`} style={{ display: 'none', top: '100%', left: '0', backgroundColor: 'white', padding: '10px' }}>
-            {comments.map((commentBlock, index) => (
-  <div key={index}>
-    {Array.isArray(commentBlock) ? (
-      commentBlock.map((comment, idx) => (
-        <div key={idx}>
-          <p>{comment.commentText}</p>
-          <p>{comment.Username}</p>
-          <p>{comment.Likes}</p>
-        </div>
-      ))
-    ) : (
-      <p>{commentBlock}</p>
-    )}
-  </div>
-))}
-
-        </div>
-            <div className="w-full p-1 Shadow text-center">
-            <button className="text-indigo-600" onClick={() => handleShowDivClick(tweet.id)}>Show Comments</button>
-        </div>
+            <p className="flex flex-col my-5">{tweet.Post}</p>
+            <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
+            <div className="flex flex-row w-full justify-evenly">
+              <button type="button" onClick={openCommentForm}>
+                <FontAwesomeIcon icon={faComment} style={{ color: "#3f44d9" }} />
+              </button>
+              <p><FontAwesomeIcon icon={faRepeat} rotation={90} style={{ color: "#28d74b" }} /></p>
+              <p><FontAwesomeIcon icon={faHeart} style={{ color: "#e60f4f" }} /> {tweet.Likes}</p>
+              <p><FontAwesomeIcon icon={faBookmark} style={{ color: "#3f44d9" }} /></p>
+            </div>
+            {isCommentFormOpen && <CommentForm />}
           </div>
-        ))}
-      </>
-    );
+          <div className="commentDiv" id={`commentDiv-${tweet.id}`} style={{ display: 'none', top: '100%', left: '0', backgroundColor: 'white', padding: '10px' }}>
+            {tweetComments && tweetComments.length > 0 ? (
+              tweetComments.map((commentBlock, index) => (
+                <div key={index}>
+                  {Array.isArray(commentBlock) ? (
+                    commentBlock.map((comment, idx) => (
+                      <div key={idx}>
+                        <p>{comment.commentText}</p>
+                        <p>{comment.Username}</p>
+                        <p>{comment.Likes}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p>{commentBlock}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p>No comments available</p>
+            )}
+          </div>
+          <div className="w-full p-1 Shadow text-center">
+            <button className="text-indigo-600" onClick={() => handleShowDivClick(tweet.id)}>Show Comments</button>
+          </div>
+        </div>
+      );
+    })}
+  </>
+);
+
+
 }
 
 
+
+
 export default TweetComponent;
-{/* <div>
-  <p>comment.commentText</p>
-  <p>comment.Username</p>
-  <p>comment.Likes</p>
-</div> */}
