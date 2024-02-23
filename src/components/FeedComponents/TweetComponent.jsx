@@ -131,24 +131,34 @@ const TweetComponent = () => {
 
   useEffect(() => {
     const getTweetList = async () => {
-      const userName = await getUserName(auth?.currentUser?.uid);
       try {
         const data = await getDocs(tweetCollectionRef);
-        const filteredData = data.docs.map(doc => ({...doc.data(), id: doc.id,}));
-        const tweetDocumentIds = data.docs.map(doc => doc.id);
-        console.log("Document IDs associated with tweets:", tweetDocumentIds);
+        const filteredData = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         setTweetList(filteredData);
-  
+
         // Fetch comments for each tweet
         const commentsData = await fetchComments();
         setComments(commentsData);
       } catch (err) {
         console.error(err);
       }
-      data.docs.forEach(doc => console.log("Document ID associated with this tweet:", doc.id));
     };
-    getTweetList(); 
-  }, []); 
+
+    // Initial fetch
+    getTweetList();
+
+    // Set interval to fetch every 5 seconds
+    const intervalId = setInterval(() => {
+      getTweetList();
+    }, 10000);
+
+    // Cleanup interval on component unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []); // Empty dependency array to run only once on component mount
+
+
 
   
     
