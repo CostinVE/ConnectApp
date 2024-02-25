@@ -5,10 +5,11 @@ import pollPNG from "../../assets/polling.png"; // Adjust the import path
 import imagePNG from "../../assets/imageupload.png"; // Adjust the import path
 
 
-import React, { useState,} from "react";
+import React, { useState, useEffect} from "react";
 import '../../index.css';
-import { database, auth } from '../../config/firebase.jsx';
+import { database, auth, storage } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs} from 'firebase/firestore';
+import {ref, getDownloadURL} from 'firebase/storage'
 import { getUserByUserID } from "../getUserByUsername.jsx";
 import TweetComponent from "./TweetComponent.jsx";
 
@@ -65,6 +66,26 @@ export const MainFeed = () => {
     }
   };
   
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Refresh only the specified part after 1.5 seconds
+      const userID = auth?.currentUser?.uid;
+      console.log(userID);
+      getDownloadURL(ref(storage, `profileimages/${userID}`))
+        .then((url) => {
+          const img = document.getElementById('CommentIMG');
+          img.setAttribute('src', url);
+        })
+        .catch((error) => {
+          console.error('Error setting image source:', error);
+        });
+    }, 500);
+
+    // Cleanup the timeout to prevent memory leaks
+    return () => clearTimeout(timeoutId);
+  }, []); // Empty dependency array ensures this effect runs only once
+
+  
   
   
   return (
@@ -77,6 +98,7 @@ export const MainFeed = () => {
     {/* Tweet form */}
       <section className="grid grid-cols-4 gap-2 Shadow">
         <img
+          id="CommentIMG"
           src={avatarIMG}
           className="col-start-1 col-end-1 row-start-1 row-end-2"
           style={{ height: "42px", borderRadius: "50%", marginLeft: "2em" }}

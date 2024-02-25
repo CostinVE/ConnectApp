@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import '../../index.css';
-import { database, auth } from '../../config/firebase.jsx';
+import { database, auth, storage } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs, doc} from 'firebase/firestore';
+import { ref, getDownloadURL } from "firebase/storage";
+
 import { getUserByUserID } from "../getUserByUsername.jsx";
 import { fetchComments } from "./FetchComments.jsx";
 
@@ -12,6 +14,7 @@ import avatarIMG from "../../assets/avatarIMG.png";
 import gifPNG from "../../assets/gif.png"; 
 import emojiPNG from "../../assets/smile.png"; 
 import imagePNG from "../../assets/imageupload.png"; 
+import { data } from "autoprefixer";
 
 
 const TweetComponent = () => {
@@ -89,6 +92,7 @@ const TweetComponent = () => {
         <FontAwesomeIcon icon={faXmark} style={{color: "#3658dd", fontSize:"24px", cursor:"pointer"}} onClick={closeCommentForm}/>
           <div className="grid grid-cols-6 gap-2 my-8">
           <img
+          id="ProfileIMG"
           src={avatarIMG}
           className="col-start-1 col-end-1 row-start-1 row-end-1"
           style={{ height: "42px", borderRadius: "50%", marginLeft:"1.5em", marginTop:"1.5em" }}
@@ -158,10 +162,8 @@ const TweetComponent = () => {
     };
   }, []); // Empty dependency array to run only once on component mount
 
-
-
   
-    
+  
 
   const handleShowDivClick = (id) => {
     const commentDiv = document.getElementById(`commentDiv-${id}`);
@@ -176,6 +178,20 @@ const handleHideDivClick = (id) => {
         commentDiv.style.display = 'none';
     }
 };
+
+const userID = auth?.currentUser?.uid;
+    console.log(userID)
+
+    getDownloadURL(ref(storage, `profileimages/${userID}`))
+  .then((url) => {
+     
+    const img = document.getElementById('ProfileIMG')
+    img.setAttribute('src', url)
+    .catch((error) => {
+    })
+  
+  })
+
 return (
   <>
     {tweetList.sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds).map((tweet) => {
@@ -186,6 +202,7 @@ return (
             {console.log(tweet.id)}
             <div className="flex flex-row my-5">
               <img
+                id="ProfileIMG"
                 src={avatarIMG}
                 className="col-start-1 col-end-1 row-start-1 row-end-2"
                 style={{ height: "32px", borderRadius: "50%" }}
