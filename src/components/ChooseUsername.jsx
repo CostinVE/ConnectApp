@@ -2,19 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../config/firebase';
 import { updateProfile } from 'firebase/auth';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, setDoc , doc} from 'firebase/firestore';
 import { database } from '../config/firebase';
 
 export const ChooseUsername = () => {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
 
-  const addUserToFirestore = async (userID, username) => {
+  const addUserToFirestore = async (userID, username, likedTweets) => {
     try {
       // Add a new document with a generated ID
-      const docRef = await addDoc(collection(database, 'Users'), {
+      const docRef = await setDoc(doc(database, 'Users', userID), {
         UserID: userID,
-        Username: username
+        Username: username,
+        likedTweets: [] // Initialize as an empty array
       });
       console.log('Document written with ID: ', docRef.id);
     } catch (e) {
