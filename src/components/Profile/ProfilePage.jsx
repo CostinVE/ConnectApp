@@ -39,26 +39,6 @@ export const ProfilePage = () => {
     
         fetchData(); // Invoke the async function to fetch user posts when the component mounts
     }, []);
-
-    const fetchUserName = async () => {
-        try {
-            const user = await getUserByUserID(auth?.currentUser?.uid);
-            if (user) {
-                setUsername(user.username);
-    
-                // Get the creation time after fetching the username
-                if (auth.currentUser) {
-                    const userCreationTime = auth.currentUser.metadata.creationTime;
-                    setCreationTime(userCreationTime.toDate()); // Convert Firebase timestamp to JavaScript Date object
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching user:', error);
-        } finally {
-            clearTimeout(loadingTimeout); // Cancel the loading timeout if data fetching is complete
-            setLoading(false); // Hide loading screen
-        }
-    };
     
 
     const generateTimestamp = () => {
@@ -75,6 +55,32 @@ export const ProfilePage = () => {
         return `${timeString}, ${dateString}`;
       };
 
+
+
+
+      const fetchUserName = async () => {
+        try {
+            const user = await getUserByUserID(auth?.currentUser?.uid);
+            if (user) {
+                setUsername(user.username);
+                // No need to log here, as we want to log after the state has been updated
+    
+                // Get the creation time after fetching the username
+                if (auth.currentUser) {
+                    const userCreationTime = auth.currentUser.metadata.creationTime;
+                    setCreationTime(userCreationTime);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching user:', error);
+        } finally {
+            clearTimeout(loadingTimeout); // Cancel the loading timeout if data fetching is complete
+            setLoading(false); // Hide loading screen
+        }
+    };
+    fetchUserName()
+
+    
 
 
     const uploadImage = async (file) => {
