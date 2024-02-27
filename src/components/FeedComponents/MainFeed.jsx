@@ -8,7 +8,7 @@ import imagePNG from "../../assets/imageupload.png"; // Adjust the import path
 import React, { useState, useEffect} from "react";
 import '../../index.css';
 import { database, auth, storage } from '../../config/firebase.jsx';
-import { collection, addDoc, Timestamp, getDocs} from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs, doc, updateDoc, arrayUnion} from 'firebase/firestore';
 import {ref, getDownloadURL} from 'firebase/storage'
 import { getUserByUserID } from "../getUserByUsername.jsx";
 import TweetComponent from "./TweetComponent.jsx";
@@ -18,7 +18,9 @@ export const MainFeed = () => {
   const [tweetList, setTweetList] = useState([])
   const [newPost, setNewPost] = useState('');
 
+
   const tweetCollectionRef = collection(database, "tweets");
+  
 
   
 
@@ -41,6 +43,7 @@ export const MainFeed = () => {
     try {
       // Get the current user's UID
       const userID = auth?.currentUser?.uid;
+      console.log(userID)
   
       // Get the user data based on the UID
       const user = await getUserByUserID(userID);
@@ -48,7 +51,7 @@ export const MainFeed = () => {
       // Check if the user data is available
       if (user) {
         // Add the post to the tweet collection
-        await addDoc(tweetCollectionRef, {
+        const newPostRef = await addDoc(tweetCollectionRef, {
           Post: newPost,
           Reposts: 0,
           Likes: 0,
@@ -56,6 +59,15 @@ export const MainFeed = () => {
           Timestamp: generateTimestamp(),
           UserId: userID,
           UserName: user.username // Use user.username directly
+        });
+  
+        // Get the document ID of the newly added post
+        const newPostID = newPostRef.id;
+  
+        // Update the PostRef collection with the document ID
+        const PostRef = doc(database, "Users", userID); // Reference to the document in the Users collection corresponding to the current user
+        await updateDoc(PostRef, {
+          Posts: arrayUnion(newPostID)
         });
   
         // Clear the input field after posting
@@ -67,6 +79,7 @@ export const MainFeed = () => {
       console.error(err);
     }
   };
+  
   
   useEffect(() => {
     const timeoutId = setTimeout(() => {

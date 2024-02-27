@@ -9,9 +9,21 @@ import { MainFeed } from "./components/FeedComponents/MainFeed";
 import Layout from "./Layout";
 import { Sidebar } from "./components/Sidebar";
 import { ChooseUsername } from "./components/ChooseUsername"; 
-import { ProfilePage } from "./components/ProfilePage";
+import { ProfilePage } from "./components/Profile/ProfilePage";
 
 
+let reloadFlag = localStorage.getItem('reloadProfilePage');
+
+window.addEventListener('beforeunload', () => {
+    if (!reloadFlag) {
+        localStorage.setItem('reloadProfilePage', 'true');
+    }
+});
+
+if (reloadFlag === 'true') {
+    localStorage.removeItem('reloadProfilePage');
+    window.location.reload(); // Reload the page
+}
 
 
 const router = createBrowserRouter([
