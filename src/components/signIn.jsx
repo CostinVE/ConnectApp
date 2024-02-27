@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth, googleProvider} from '../config/firebase'
 import { createUserWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -8,6 +9,8 @@ const SignIn = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [currentUser, setCurrentUser] = useState(null);
+
+    const navigate = useNavigate()
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -25,6 +28,7 @@ const SignIn = () => {
         } catch (err) {
             console.error(err);
         }
+        navigate('/ConnectApp')
     };
 
     const signInWithGoogle = async () => {

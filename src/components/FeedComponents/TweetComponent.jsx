@@ -8,7 +8,7 @@ import {
   getDocs,
   doc,
   arrayUnion, arrayRemove,
-  updateDoc, getDoc
+  updateDoc, getDoc , increment, FieldValue
 } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
 
@@ -239,7 +239,7 @@ const TweetComponent = () => {
   useEffect(() => {
     const intervalId = setInterval(() => {
       refreshTweetComponent();
-    }, 25000);
+    }, 250000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -253,9 +253,90 @@ const TweetComponent = () => {
             (commentBlock) => commentBlock[0]?.tweetId === tweet.id
           );
 
+
+
           const usersCollectionRef = collection(database, "Users");
           const userID = auth.currentUser.uid;
           const tweetId = tweet.id;
+
+          const addToReposts = async (userId, tweetId) => {
+            try {
+              const userDocRef = doc(usersCollectionRef, userId);
+          
+              // Check if user has already liked the tweet
+              const userDocSnapshot = await getDoc(userDocRef);
+              const userData = userDocSnapshot.data();
+              if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
+                console.log("User has already liked this tweet.");
+          
+                // Remove the tweetId from user's liked tweets
+                await updateDoc(userDocRef, {
+                  repostedTweets: arrayRemove(tweetId),
+                });
+
+                const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+                await updateDoc(tweetDocRef, {
+                  Reposts: increment(-1)
+                })
+          
+                console.log("Tweet removed from user's liked tweets");
+                
+                return; // Exit the function
+              }
+          
+              // Add the tweet to user's liked tweets
+              await updateDoc(userDocRef, {
+                repostedTweets: arrayUnion(tweetId),
+              });
+    
+              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              await updateDoc(tweetDocRef, {
+                Reposts: increment(1)
+              })
+            } catch (e) {
+              console.error("Error adding tweet to user's liked tweets: ", e);
+            }
+          };
+
+          const addToBookmarks = async (userId, tweetId) => {
+            try {
+              const userDocRef = doc(usersCollectionRef, userId);
+          
+              // Check if user has already liked the tweet
+              const userDocSnapshot = await getDoc(userDocRef);
+              const userData = userDocSnapshot.data();
+              if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(tweetId)) {
+                console.log("User has already liked this tweet.");
+          
+                // Remove the tweetId from user's liked tweets
+                await updateDoc(userDocRef, {
+                  bookmarkedTweets: arrayRemove(tweetId),
+                });
+
+                const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+                await updateDoc(tweetDocRef, {
+                  Bookmarks: increment(-1)
+                })
+          
+                console.log("Tweet removed from user's liked tweets");
+                
+                return; // Exit the function
+              }
+          
+              // Add the tweet to user's liked tweets
+              await updateDoc(userDocRef, {
+                bookmarkedTweets: arrayUnion(tweetId),
+              });
+    
+              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              await updateDoc(tweetDocRef, {
+                Bookmarks: increment(1)
+              })
+            } catch (e) {
+              console.error("Error adding tweet to user's liked tweets: ", e);
+            }
+          };
+
 
           const addToLikes = async (userId, tweetId) => {
             try {
@@ -271,6 +352,11 @@ const TweetComponent = () => {
                 await updateDoc(userDocRef, {
                   likedTweets: arrayRemove(tweetId),
                 });
+
+                const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+                await updateDoc(tweetDocRef, {
+                  Likes: increment(-1)
+                })
           
                 console.log("Tweet removed from user's liked tweets");
                 
@@ -281,7 +367,11 @@ const TweetComponent = () => {
               await updateDoc(userDocRef, {
                 likedTweets: arrayUnion(tweetId),
               });
-              console.log("Tweet added to user's liked tweets");
+    
+              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              await updateDoc(tweetDocRef, {
+                Likes: increment(1)
+              })
             } catch (e) {
               console.error("Error adding tweet to user's liked tweets: ", e);
             }
@@ -313,8 +403,10 @@ const TweetComponent = () => {
                     <FontAwesomeIcon
                       icon={faRepeat}
                       rotation={90}
-                      style={{ color: "#28d74b" }}
-                    />
+                      style={{ color: "#28d74b", cursor:"pointer" }}
+                      onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+                      />{" "}
+                      {tweet.Reposts}
                   </p>
                   <p>
                     <FontAwesomeIcon
@@ -327,8 +419,10 @@ const TweetComponent = () => {
                   <p>
                     <FontAwesomeIcon
                       icon={faBookmark}
-                      style={{ color: "#3f44d9" }}
-                    />
+                      style={{ color: "#3f44d9", cursor: "pointer" }}
+                      onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
+                      />{" "}
+                      {tweet.Bookmarks}
                   </p>
                 </div>
                 {isCommentFormOpen && <CommentForm />}

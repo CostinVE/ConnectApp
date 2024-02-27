@@ -15,7 +15,9 @@ export const ChooseUsername = () => {
       const docRef = await setDoc(doc(database, 'Users', userID), {
         UserID: userID,
         Username: username,
-        likedTweets: [] // Initialize as an empty array
+        likedTweets: [] ,
+        bookmarkedTweets: [],
+        repostedTweets: []
       });
       console.log('Document written with ID: ', docRef.id);
     } catch (e) {

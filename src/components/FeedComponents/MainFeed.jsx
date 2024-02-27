@@ -50,7 +50,9 @@ export const MainFeed = () => {
         // Add the post to the tweet collection
         await addDoc(tweetCollectionRef, {
           Post: newPost,
+          Reposts: 0,
           Likes: 0,
+          Bookmarks: 0,
           Timestamp: generateTimestamp(),
           UserId: userID,
           UserName: user.username // Use user.username directly
