@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   collection,
   addDoc,
@@ -18,12 +20,13 @@ import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
 
 
 export const fetchUserPosts = async () => {
+  
+
 
   const usersCollectionRef = collection(database, "Users");
   const userID = auth.currentUser.uid;
 
-
-  
+ 
   const openCommentForm = () => {
     setCommentFormOpen(true);
   };
@@ -59,23 +62,24 @@ export const fetchUserPosts = async () => {
       console.log("User Posts:", userPosts);
 
       const postsHTML = userPosts.map(postID => {
-        const tweetId = postID;
-        const addToReposts = async (userId, tweetId) => {
+        console.log('Your post id is :',postID)
+    
+        const addToReposts = async (userId, postID) => {
           try {
             const userDocRef = doc(usersCollectionRef, userId);
         
             // Check if user has already liked the tweet
-            const userDocSnapshot = await getDoc(userDocRef);
-            const userData = userDocSnapshot.data();
-            if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
+            const userDocSnapshot = await getDoc(userDocRef);    
+                    const userData = userDocSnapshot.data();
+            if (userData && userData.repostedTweets && userData.repostedTweets.includes(postID)) {
               console.log("User has already liked this tweet.");
         
-              // Remove the tweetId from user's liked tweets
+              // Remove the postID from user's liked tweets
               await updateDoc(userDocRef, {
-                repostedTweets: arrayRemove(tweetId),
+                repostedTweets: arrayRemove(postID),
               });
       
-              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              const tweetDocRef = doc(collection(database, "tweets"), postID);
               await updateDoc(tweetDocRef, {
                 Reposts: increment(-1)
               })
@@ -87,10 +91,10 @@ export const fetchUserPosts = async () => {
         
             // Add the tweet to user's liked tweets
             await updateDoc(userDocRef, {
-              repostedTweets: arrayUnion(tweetId),
+              repostedTweets: arrayUnion(postID),
             });
       
-            const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+            const tweetDocRef = doc(collection(database, "tweets"), postID);
             await updateDoc(tweetDocRef, {
               Reposts: increment(1)
             })
@@ -99,22 +103,22 @@ export const fetchUserPosts = async () => {
           }
         };
       
-        const addToBookmarks = async (userId, tweetId) => {
+        const addToBookmarks = async (userId, postID) => {
           try {
             const userDocRef = doc(usersCollectionRef, userId);
         
             // Check if user has already liked the tweet
             const userDocSnapshot = await getDoc(userDocRef);
             const userData = userDocSnapshot.data();
-            if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(tweetId)) {
+            if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(postID)) {
               console.log("User has already liked this tweet.");
         
-              // Remove the tweetId from user's liked tweets
+              // Remove the postID from user's liked tweets
               await updateDoc(userDocRef, {
-                bookmarkedTweets: arrayRemove(tweetId),
+                bookmarkedTweets: arrayRemove(postID),
               });
       
-              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              const tweetDocRef = doc(collection(database, "tweets"), postID);
               await updateDoc(tweetDocRef, {
                 Bookmarks: increment(-1)
               })
@@ -126,10 +130,10 @@ export const fetchUserPosts = async () => {
         
             // Add the tweet to user's liked tweets
             await updateDoc(userDocRef, {
-              bookmarkedTweets: arrayUnion(tweetId),
+              bookmarkedTweets: arrayUnion(postID),
             });
       
-            const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+            const tweetDocRef = doc(collection(database, "tweets"), postID);
             await updateDoc(tweetDocRef, {
               Bookmarks: increment(1)
             })
@@ -139,22 +143,22 @@ export const fetchUserPosts = async () => {
         };
       
       
-        const addToLikes = async (userId, tweetId) => {
+        const addToLikes = async (userId, postID) => {
           try {
             const userDocRef = doc(usersCollectionRef, userId);
         
             // Check if user has already liked the tweet
             const userDocSnapshot = await getDoc(userDocRef);
             const userData = userDocSnapshot.data();
-            if (userData && userData.likedTweets && userData.likedTweets.includes(tweetId)) {
+            if (userData && userData.likedTweets && userData.likedTweets.includes(postID)) {
               console.log("User has already liked this tweet.");
         
-              // Remove the tweetId from user's liked tweets
+              // Remove the postID from user's liked tweets
               await updateDoc(userDocRef, {
-                likedTweets: arrayRemove(tweetId),
+                likedTweets: arrayRemove(postID),
               });
       
-              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              const tweetDocRef = doc(collection(database, "tweets"), postID);
               await updateDoc(tweetDocRef, {
                 Likes: increment(-1)
               })
@@ -166,10 +170,10 @@ export const fetchUserPosts = async () => {
         
             // Add the tweet to user's liked tweets
             await updateDoc(userDocRef, {
-              likedTweets: arrayUnion(tweetId),
+              likedTweets: arrayUnion(postID),
             });
       
-            const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+            const tweetDocRef = doc(collection(database, "tweets"), postID);
             await updateDoc(tweetDocRef, {
               Likes: increment(1)
             })
@@ -203,7 +207,7 @@ export const fetchUserPosts = async () => {
                       icon={faRepeat}
                       rotation={90}
                       style={{ color: "#28d74b", cursor:"pointer" }}
-                      onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+                      onClick={() => addToReposts(userID, postID)} // Call addToReposts
                       />{" "}
                       {postData.Reposts}
                   </p>
@@ -211,7 +215,7 @@ export const fetchUserPosts = async () => {
                     <FontAwesomeIcon
                       icon={faHeart}
                       style={{ color: "#e60f4f", cursor: "pointer" }}
-                      onClick={() => addToLikes(userID, tweetId)} // Call addToLikes with tweet id
+                      onClick={() => addToLikes(userID, postID)} // Call addToLikes with tweet id
                     />{" "}
                     {postData.Likes}
                   </p>
@@ -219,7 +223,7 @@ export const fetchUserPosts = async () => {
                     <FontAwesomeIcon
                       icon={faBookmark}
                       style={{ color: "#3f44d9", cursor: "pointer" }}
-                      onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
+                      onClick={() => addToBookmarks(userID, postID)} // Call addToBookMarks
                       />{" "}
                       {postData.Bookmarks}
                   </p>    
