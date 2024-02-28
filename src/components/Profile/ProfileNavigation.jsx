@@ -1,10 +1,47 @@
 import { useState } from "react";
-import { doc, getDoc} from "firebase/firestore"
+import {
+  collection,
+  addDoc,
+  Timestamp,
+  getDocs,
+  doc,
+  arrayUnion, arrayRemove,
+  updateDoc, getDoc , increment, FieldValue
+} from "firebase/firestore";
 import { auth, storage, database} from '../../config/firebase'; // Import auth from firebase config
 
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHeart, faRepeat, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
+
+
+
 export const fetchUserPosts = async () => {
-  const userID = auth?.currentUser?.uid;
+
+  const usersCollectionRef = collection(database, "Users");
+  const userID = auth.currentUser.uid;
+
+
+  
+  const openCommentForm = () => {
+    setCommentFormOpen(true);
+  };
+
+  const closeCommentForm = () => {
+    setCommentFormOpen(false);
+  };
+
+  const handleDivClick = (event) => {
+    // Check if the clicked element is the div itself
+    if (event.target === event.currentTarget) {
+      // Call closeCommentForm only when clicking on the div itself
+      closeCommentForm();
+    }
+  };
+ 
+
+  
   try {
       const formattedDate = (timestamp) => {
           const options = { hour: 'numeric', minute: 'numeric', hour12: true };
@@ -21,31 +58,184 @@ export const fetchUserPosts = async () => {
 
       console.log("User Posts:", userPosts);
 
-      const postsHTML = await Promise.all(userPosts.map(async (postID) => {
-          const PostRef = doc(database, "tweets", postID);
-          const postDoc = await getDoc(PostRef);
-
-          if (postDoc.exists()) {
-              const postData = postDoc.data();
-
-              return (
-                  <div key={postID} className="post">
-                      <p>Post: {postData.Post}</p>
-                      <p>Likes: {postData.Likes}</p>
-                      <p>Bookmarks: {postData.Bookmarks}</p>
-                      <p>Reposts: {postData.Reposts}</p>
-                      <p>Timestamp: {formattedDate(postData.Timestamp.seconds)}</p>
-                      <p>UserName: {postData.UserName}</p>
-                  </div>
-              );
-          } else {
-              console.log("Post not found for ID:", postID);
-              return null;
+      const postsHTML = userPosts.map(postID => {
+        const tweetId = postID;
+        const addToReposts = async (userId, tweetId) => {
+          try {
+            const userDocRef = doc(usersCollectionRef, userId);
+        
+            // Check if user has already liked the tweet
+            const userDocSnapshot = await getDoc(userDocRef);
+            const userData = userDocSnapshot.data();
+            if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
+              console.log("User has already liked this tweet.");
+        
+              // Remove the tweetId from user's liked tweets
+              await updateDoc(userDocRef, {
+                repostedTweets: arrayRemove(tweetId),
+              });
+      
+              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              await updateDoc(tweetDocRef, {
+                Reposts: increment(-1)
+              })
+        
+              console.log("Tweet removed from user's liked tweets");
+              
+              return; // Exit the function
+            }
+        
+            // Add the tweet to user's liked tweets
+            await updateDoc(userDocRef, {
+              repostedTweets: arrayUnion(tweetId),
+            });
+      
+            const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+            await updateDoc(tweetDocRef, {
+              Reposts: increment(1)
+            })
+          } catch (e) {
+            console.error("Error adding tweet to user's liked tweets: ", e);
           }
-      }));
+        };
+      
+        const addToBookmarks = async (userId, tweetId) => {
+          try {
+            const userDocRef = doc(usersCollectionRef, userId);
+        
+            // Check if user has already liked the tweet
+            const userDocSnapshot = await getDoc(userDocRef);
+            const userData = userDocSnapshot.data();
+            if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(tweetId)) {
+              console.log("User has already liked this tweet.");
+        
+              // Remove the tweetId from user's liked tweets
+              await updateDoc(userDocRef, {
+                bookmarkedTweets: arrayRemove(tweetId),
+              });
+      
+              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              await updateDoc(tweetDocRef, {
+                Bookmarks: increment(-1)
+              })
+        
+              console.log("Tweet removed from user's liked tweets");
+              
+              return; // Exit the function
+            }
+        
+            // Add the tweet to user's liked tweets
+            await updateDoc(userDocRef, {
+              bookmarkedTweets: arrayUnion(tweetId),
+            });
+      
+            const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+            await updateDoc(tweetDocRef, {
+              Bookmarks: increment(1)
+            })
+          } catch (e) {
+            console.error("Error adding tweet to user's liked tweets: ", e);
+          }
+        };
+      
+      
+        const addToLikes = async (userId, tweetId) => {
+          try {
+            const userDocRef = doc(usersCollectionRef, userId);
+        
+            // Check if user has already liked the tweet
+            const userDocSnapshot = await getDoc(userDocRef);
+            const userData = userDocSnapshot.data();
+            if (userData && userData.likedTweets && userData.likedTweets.includes(tweetId)) {
+              console.log("User has already liked this tweet.");
+        
+              // Remove the tweetId from user's liked tweets
+              await updateDoc(userDocRef, {
+                likedTweets: arrayRemove(tweetId),
+              });
+      
+              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+              await updateDoc(tweetDocRef, {
+                Likes: increment(-1)
+              })
+        
+              console.log("Tweet removed from user's liked tweets");
+              
+              return; // Exit the function
+            }
+        
+            // Add the tweet to user's liked tweets
+            await updateDoc(userDocRef, {
+              likedTweets: arrayUnion(tweetId),
+            });
+      
+            const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+            await updateDoc(tweetDocRef, {
+              Likes: increment(1)
+            })
+          } catch (e) {
+            console.error("Error adding tweet to user's liked tweets: ", e);
+          }
+        };
+          return async () => {
+              const PostRef = doc(database, "tweets", postID);
+              const postDoc = await getDoc(PostRef);
+
+              if (postDoc.exists()) {
+                  const postData = postDoc.data();
+
+                  return (
+                      <section key={postID} className="post">
+                        <div className="flex-col p-3 Shadow">
+                        <div className="flex flex-row my-5">
+                        <p className="lato-bold">{postData.UserName}</p></div>
+                        <p className="flex flex-col my-5">{postData.Post}</p>
+                        <p className="opacity-50">{formattedDate(postData.Timestamp.seconds)}</p>
+                        <div className="flex flex-row w-full justify-evenly">
+                        <button type="button" onClick={openCommentForm}>
+                    <FontAwesomeIcon
+                      icon={faComment}
+                      style={{ color: "#3f44d9" }}
+                    />
+                  </button>
+                  <p>
+                    <FontAwesomeIcon
+                      icon={faRepeat}
+                      rotation={90}
+                      style={{ color: "#28d74b", cursor:"pointer" }}
+                      onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+                      />{" "}
+                      {postData.Reposts}
+                  </p>
+                  <p>
+                    <FontAwesomeIcon
+                      icon={faHeart}
+                      style={{ color: "#e60f4f", cursor: "pointer" }}
+                      onClick={() => addToLikes(userID, tweetId)} // Call addToLikes with tweet id
+                    />{" "}
+                    {postData.Likes}
+                  </p>
+                  <p>
+                    <FontAwesomeIcon
+                      icon={faBookmark}
+                      style={{ color: "#3f44d9", cursor: "pointer" }}
+                      onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
+                      />{" "}
+                      {postData.Bookmarks}
+                  </p>    
+                          </div>
+                        </div>
+                      </section>
+                  );
+              } else {
+                  console.log("Post not found for ID:", postID);
+                  return null;
+              }
+          };
+      });
 
       console.log(postsHTML);
-      return postsHTML;
+      return Promise.all(postsHTML.map(async (postFunction) => await postFunction()));
   } catch (error) {
       console.error("Error fetching user posts:", error);
       return null;

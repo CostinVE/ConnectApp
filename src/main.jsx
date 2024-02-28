@@ -10,6 +10,7 @@ import Layout from "./Layout";
 import { Sidebar } from "./components/Sidebar";
 import { ChooseUsername } from "./components/ChooseUsername"; 
 import { ProfilePage } from "./components/Profile/ProfilePage";
+import { BookmarksFeed } from "./components/Profile/BookmarksFeed";
 
 
 let reloadFlag = localStorage.getItem('reloadProfilePage');
@@ -58,6 +59,10 @@ const router = createBrowserRouter([
   {
     path: "/ConnectApp/Comment",
     element: <Layout><Sidebar/></Layout>, // Update import path
+  },
+  {
+    path: "/ConnectApp/Bookmarks",
+    element: <Layout><Sidebar/><BookmarksFeed/></Layout>, // Update import path
   },
 ]);
 
