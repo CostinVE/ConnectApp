@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { auth, googleProvider} from '../config/firebase'
-import { createUserWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -23,14 +23,18 @@ const SignIn = () => {
    
 
     const signIn = async () => {
-        try {
-            await createUserWithEmailAndPassword(auth, email, password);
-        } catch (err) {
-            console.error(err);
-        }
-        navigate('/ConnectApp')
+      try {
+        // Use signInWithEmailAndPassword for existing accounts
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+        // Handle success (optional)
+        console.log("Signed in successfully:", userCredential.user);
+        navigate('/ConnectApp'); // Navigate to the desired page after successful login
+      } catch (err) {
+        console.error("Error signing in:", err);
+        // Handle errors appropriately (e.g., display error message to the user)
+      }
     };
-
     const signInWithGoogle = async () => {
         try {
             await signInWithPopup(auth, googleProvider);

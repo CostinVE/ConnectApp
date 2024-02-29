@@ -231,10 +231,6 @@ const TweetComponent = () => {
   const userID = auth?.currentUser?.uid;
   console.log(userID);
 
-  getDownloadURL(ref(storage, `profileimages/${userID}`)).then((url) => {
-    const img = document.getElementById("ProfileIMG");
-    img.setAttribute("src", url).catch((error) => {});
-  });
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -248,16 +244,52 @@ const TweetComponent = () => {
     <>
       {tweetList
         .sort((a, b) => b.Timestamp.seconds - a.Timestamp.seconds)
-        .map((tweet) => {
+        .map((tweet, index) => {
           const tweetComments = comments.filter(
             (commentBlock) => commentBlock[0]?.tweetId === tweet.id
           );
+
+          const tweetId = tweet.id;
+
+          // Generate a unique ID for the image element
+          const imageId = `ProfileIMG-${index}`;
+    
+          const fetchTweetAndGetUserImage = async (tweetId, index) => {
+            try {
+              // Fetch tweet data
+              const tweetRef = doc(database, "tweets", tweetId);
+              const tweetDoc = await getDoc(tweetRef);
+    
+              if (tweetDoc.exists()) {
+                const tweetData = tweetDoc.data();
+                const tweetProfileIMG = tweetData.UserId
+    
+                // Check if UserId exists
+                if (tweetProfileIMG) {
+                  // Use the extracted UserId to construct the path
+                  const imageUrl = await getDownloadURL(ref(storage, `profileimages/${tweetProfileIMG}`));
+    
+                  // Update image element
+                  const img = document.getElementById(imageId);
+                  img.setAttribute("src", imageUrl);
+                  return; // No need to return anything explicitly as the function is asynchronous
+                }
+              }
+    
+              console.warn("User ID not found in tweet data or tweet does not exist.");
+            } catch (error) {
+              console.error("Error fetching tweet or user image:", error);
+            }
+          };
+    
+          // Call the function and pass the index
+          fetchTweetAndGetUserImage(tweetId, index);
 
 
 
           const usersCollectionRef = collection(database, "Users");
           const userID = auth.currentUser.uid;
-          const tweetId = tweet.id;
+        
 
           const addToReposts = async (userId, tweetId) => {
             try {
@@ -382,7 +414,7 @@ const TweetComponent = () => {
               <div className="flex-col p-3 Shadow">
                 <div className="flex flex-row my-5">
                   <img
-                    id="ProfileIMG"
+                    id={imageId}
                     src={avatarIMG}
                     className="col-start-1 col-end-1 row-start-1 row-end-2"
                     style={{ height: "32px", borderRadius: "50%" }}

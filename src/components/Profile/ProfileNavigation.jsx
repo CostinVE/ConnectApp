@@ -17,6 +17,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faRepeat, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
 
+import { getUserByUserID } from "../getUserByUsername";
 
 
 export const fetchUserPosts = async () => {
@@ -24,7 +25,7 @@ export const fetchUserPosts = async () => {
   const usersCollectionRef = collection(database, "Users");
   const userID = auth.currentUser.uid;
 
-
+  
 
   
   try {
@@ -40,13 +41,14 @@ export const fetchUserPosts = async () => {
       const userDoc = await getDoc(UserRef);
       const userData = userDoc.data();
       const userPosts = [
-        ...(userData?.Posts || []),
-        ...(userData?.repostedTweets || [])
+        ...(userData?.Posts || []).reverse(), // Reverse the order of userData?.Posts
+        ...(userData?.repostedTweets || []).reverse() // Reverse the order of userData?.repostedTweets
       ];
-
       console.log("User Posts:", userPosts);
 
       const postsHTML = userPosts.map(postID => {
+        const username = userDoc.data().Username;
+      
         return async () => {
             const PostRef = doc(database, "tweets", postID);
             const postDoc = await getDoc(PostRef);
@@ -58,7 +60,7 @@ export const fetchUserPosts = async () => {
                 // Function to render additional information if it's a repost
                 const renderRepostInfo = () => {
                     if (isRepost) {
-                        return <p className="opacity-50">{postData.UserName} reposted this</p>;
+                        return <p className="opacity-50">{username} reposted this</p>;
                     }
                     return null;
                 };
@@ -184,8 +186,8 @@ export const fetchUserPosts = async () => {
                   return (
                       <section key={postID} className="post">
                         <div className="flex-col p-3 Shadow">
-                        <div className="flex flex-row my-5">
                         {renderRepostInfo()}
+                        <div className="flex flex-row my-5">
                         <p className="lato-bold">{postData.UserName}</p></div>
                         <p className="flex flex-col my-5">{postData.Post}</p>
                         <p className="opacity-50">{formattedDate(postData.Timestamp.seconds)}</p>
