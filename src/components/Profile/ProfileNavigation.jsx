@@ -20,29 +20,11 @@ import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
 
 
 export const fetchUserPosts = async () => {
-  
-
 
   const usersCollectionRef = collection(database, "Users");
   const userID = auth.currentUser.uid;
 
- 
-  const openCommentForm = () => {
-    setCommentFormOpen(true);
-  };
 
-  const closeCommentForm = () => {
-    setCommentFormOpen(false);
-  };
-
-  const handleDivClick = (event) => {
-    // Check if the clicked element is the div itself
-    if (event.target === event.currentTarget) {
-      // Call closeCommentForm only when clicking on the div itself
-      closeCommentForm();
-    }
-  };
- 
 
   
   try {
@@ -57,12 +39,29 @@ export const fetchUserPosts = async () => {
       const UserRef = doc(database, "Users", userID);
       const userDoc = await getDoc(UserRef);
       const userData = userDoc.data();
-      const userPosts = userData?.Posts || []; // Ensure userPosts is not null
+      const userPosts = [
+        ...(userData?.Posts || []),
+        ...(userData?.repostedTweets || [])
+      ];
 
       console.log("User Posts:", userPosts);
 
       const postsHTML = userPosts.map(postID => {
-        console.log('Your post id is :',postID)
+        return async () => {
+            const PostRef = doc(database, "tweets", postID);
+            const postDoc = await getDoc(PostRef);
+    
+            if (postDoc.exists()) {
+                const postData = postDoc.data();
+                const isRepost = userData?.repostedTweets && userData.repostedTweets.includes(postID);
+    
+                // Function to render additional information if it's a repost
+                const renderRepostInfo = () => {
+                    if (isRepost) {
+                        return <p className="opacity-50">{postData.UserName} reposted this</p>;
+                    }
+                    return null;
+                };
     
         const addToReposts = async (userId, postID) => {
           try {
@@ -181,27 +180,16 @@ export const fetchUserPosts = async () => {
             console.error("Error adding tweet to user's liked tweets: ", e);
           }
         };
-          return async () => {
-              const PostRef = doc(database, "tweets", postID);
-              const postDoc = await getDoc(PostRef);
-
-              if (postDoc.exists()) {
-                  const postData = postDoc.data();
-
+        
                   return (
                       <section key={postID} className="post">
                         <div className="flex-col p-3 Shadow">
                         <div className="flex flex-row my-5">
+                        {renderRepostInfo()}
                         <p className="lato-bold">{postData.UserName}</p></div>
                         <p className="flex flex-col my-5">{postData.Post}</p>
                         <p className="opacity-50">{formattedDate(postData.Timestamp.seconds)}</p>
                         <div className="flex flex-row w-full justify-evenly">
-                        <button type="button" onClick={openCommentForm}>
-                    <FontAwesomeIcon
-                      icon={faComment}
-                      style={{ color: "#3f44d9" }}
-                    />
-                  </button>
                   <p>
                     <FontAwesomeIcon
                       icon={faRepeat}

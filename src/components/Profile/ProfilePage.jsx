@@ -13,6 +13,7 @@ import { getUserByUserID } from '../getUserByUsername';
 import { ProfileNavigation, fetchUserPosts } from './ProfileNavigation';
 
 export const ProfilePage = () => {
+
     const userID = auth?.currentUser?.uid;
 
     const [imageUpload, setImageUpload] = useState(null);
