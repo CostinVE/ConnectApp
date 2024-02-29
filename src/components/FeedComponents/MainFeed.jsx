@@ -14,6 +14,8 @@ import { collection, addDoc, Timestamp, getDocs, doc, updateDoc, arrayUnion} fro
 import {ref, getDownloadURL} from 'firebase/storage'
 import { getUserByUserID } from "../getUserByUsername.jsx";
 import TweetComponent from "./TweetComponent.jsx";
+import imageUploadPlaceholder from "../../assets/imageuploadplaceholder.png"
+
 
 export const MainFeed = () => {
   
@@ -25,7 +27,6 @@ export const MainFeed = () => {
   const tweetCollectionRef = collection(database, "tweets");
   
 
-  
 
   const generateTimestamp = () => {
     return Timestamp.now(); // This will give you the current timestamp
@@ -95,97 +96,102 @@ export const MainFeed = () => {
       fetchUserData(); // Fetch user data when component mounts
     }, []);
 
-    const addImageToTweet = async () => {
-      try {
-        // Add the comment only to the tweet that is currently being interacted with
-        const parentDocRef = doc(database, "tweets", tweetList[0].id); // Change the index as needed
-        await addDoc(collection(parentDocRef, "comments"), {
-          commentText: newPost,
-          Likes: 0,
-          Username: user ? user.username : "Unknown",
-        });
-      } catch (error) {
-        console.error("Error adding comment to tweet:", error);
-      }
-    };
+
+
+    const uploadImage = () => {
+      // Create a hidden file input element
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg, image/png'; // Accept only JPEG and PNG files
+      input.onchange = (event) => {
+          const file = event.target.files[0];
+  
+          // Check if a file was selected
+          if (!file) {
+              console.error("No file selected.");
+              return;
+          }
+  
+          // Validate file type (only accept .png and .jpeg)
+          const validExtensions = ["png", "jpeg", "jpg"];
+          const fileExtension = file.name.split(".")[1].toLowerCase();
+          if (!validExtensions.includes(fileExtension)) {
+              console.error("Invalid file type. Only .png and .jpeg files are allowed.");
+              return;
+          }
+  
+          // Update the image element's src attribute with the selected file
+          const imageUrl = URL.createObjectURL(file);
+          document.getElementById("ImageUploadPlaceHolder").src = imageUrl;
+      };
+  
+      input.click(); // Trigger the file selection dialog
+  };
+      
+    
     return (
       <div
         id="commentform"
         className="fixed h-full w-full inset-0 z-50 flex items-center justify-center bg-black bg-opacity-10"
         onClick={handleDivClick}
       >
-        <div className="flex-col w-1/3 h-2/4 p-5 bg-white rounded-xl">
+        <div className="flex-col w-2/4 h-fit p-5 bg-white rounded-xl">
+          <div className="flex flex-row justify-between">
           <FontAwesomeIcon
             icon={faXmark}
             style={{ color: "#3658dd", fontSize: "24px", cursor: "pointer" }}
             onClick={closeImageUploadForm}
           />
-          <div className="grid grid-cols-6 gap-2 my-8">
+          <button
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6  rounded-full"
+                onClick={onPost}
+              >
+                Post
+              </button>
+              </div>
+          <div className="flex flex-row my-8">
             <img
               id="ProfileIMG"
               src={avatarIMG}
               className="col-start-1 col-end-1 row-start-1 row-end-1"
               style={{
-                height: "42px",
+                height: "62px",
                 borderRadius: "50%",
-                marginLeft: "1.5em",
-                marginTop: "1.5em",
+                marginRight: "1em"
               }}
               alt="User Avatar"
             />
             <input
               className="col-start-2 col-end-4 row-start-1 w-80 row-end-1 border-none"
               placeholder="What is happening?!"
-              style={{ height: "200px", minWidth: "100%", border: "none" }}
+              style={{ height: "80px", width:"100%", border: "none" }}
               onChange={(event) => setNewPost(event.target.value)}
             />
-
-            <div className="col-start-2 col-end-2 row-start-7 row-end-7 flex items-center">
-              <img
-                src={imagePNG}
-                style={{
-                  height: "20px",
-                  marginRight: "40px",
-                  cursor: "pointer",
-                }}
-                alt="Image Icon"
-              />
-              <img
-                src={gifPNG}
-                style={{
-                  height: "20px",
-                  marginRight: "40px",
-                  cursor: "pointer",
-                }}
-                alt="GIF Icon"
-              />
-              <img
-                src={emojiPNG}
-                style={{
-                  height: "20px",
-                  marginRight: "40px",
-                  cursor: "pointer",
-                }}
-                alt="Emoji Icon"
-              />
             </div>
-            <div className="col-start-5 col-end-5 row-start-7 row-end-7">
-              <button
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-2  rounded-full"
-                onClick={addImageToTweet}
-              >
-                Reply
-              </button>
+
+            <div className="flex items-center justify-center">
+            <img
+              id="ImageUploadPlaceHolder"
+              onClick={uploadImage}
+              src={imageUploadPlaceholder}
+              className="col-start-1 col-end-1 row-start-1 row-end-1"
+              style={{
+                height: "480px",
+                width:"420px",
+                borderRadius: "12%",
+                cursor:"pointer"
+              }}
+              alt="User Avatar"
+            />             
             </div>
           </div>
         </div>
-      </div>
     );
   };
 
   
   
-  const onPost = async () => {
+  const onPost = async (imageURL) => {
     try {
       // Get the current user's UID
       const userID = auth?.currentUser?.uid;
@@ -204,11 +210,23 @@ export const MainFeed = () => {
           Bookmarks: 0,
           Timestamp: generateTimestamp(),
           UserId: userID,
-          UserName: user.username // Use user.username directly
+          UserName: user.username,
+          Image: '',
         });
-  
-        // Get the document ID of the newly added post
+
+ 
+         // Get the document ID of the newly added post
         const newPostID = newPostRef.id;
+
+        const newPostImageRef = doc(database, "tweets", newPostID);
+  
+     
+        if (imageURL) {
+          await updateDoc(newPostImageRef, { Image: newPostID });
+      }
+      else {
+        return
+      }
   
         // Update the PostRef collection with the document ID
         const PostRef = doc(database, "Users", userID); // Reference to the document in the Users collection corresponding to the current user
