@@ -96,7 +96,7 @@ export const MainFeed = () => {
   //     console.log(userID);
   //     getDownloadURL(ref(storage, `profileimages/${userID}`))
   //       .then((url) => {
-  //         const img = document.getElementById('CommentIMG');
+  //         const img = document.getElementById('ProfileIMG');
   //         img.setAttribute('src', url);
   //       })
   //       .catch((error) => {
@@ -121,7 +121,7 @@ export const MainFeed = () => {
     {/* Tweet form */}
       <section className="grid grid-cols-4 gap-2 Shadow">
         <img
-          id="CommentIMG"
+          id="ProfileIMG"
           src={avatarIMG}
           className="col-start-1 col-end-1 row-start-1 row-end-2"
           style={{ height: "42px", borderRadius: "50%", marginLeft: "2em" }}
@@ -158,6 +158,9 @@ export const MainFeed = () => {
       </section>
       {/* Feed space */}
       <section className="flex-col w-full">
+
+
+        
       <TweetComponent />
       </section>
     </div>

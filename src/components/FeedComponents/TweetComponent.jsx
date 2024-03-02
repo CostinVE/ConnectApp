@@ -26,6 +26,7 @@ import imageUploadPlaceholder from "../../assets/imageuploadplaceholder.png"
 
 const TweetComponent = () => {
   const tweetCollectionRef = collection(database, "tweets");
+  const imageTweetCollectionRef = collection(database, "imagetweets")
 
   const [tweetList, setTweetList] = useState([]);
 
@@ -186,13 +187,28 @@ const TweetComponent = () => {
   useEffect(() => {
     const getTweetList = async () => {
       try {
-        const data = await getDocs(tweetCollectionRef);
-        const filteredData = data.docs.map((doc) => ({
+        // Fetch data from 'tweets' collection
+        const tweetData = await getDocs(tweetCollectionRef);
+        const tweetListData = tweetData.docs.map(doc => ({
           ...doc.data(),
           id: doc.id,
+          type: 'tweet' // Add a type field to distinguish between tweets and image tweets
         }));
-        setTweetList(filteredData);
-
+  
+        // Fetch data from 'imagetweets' collection
+        const imageTweetData = await getDocs(imageTweetCollectionRef);
+        const imageTweetListData = imageTweetData.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id,
+          type: 'imageTweet' // Add a type field to distinguish between tweets and image tweets
+        }));
+  
+        // Combine data from both collections into one array
+        const combinedData = [...tweetListData, ...imageTweetListData];
+  
+        // Set the combined data as the tweet list
+        setTweetList(combinedData);
+  
         // Fetch comments for each tweet
         const commentsData = await fetchComments();
         setComments(commentsData);
@@ -200,9 +216,10 @@ const TweetComponent = () => {
         console.error(err);
       }
     };
-
+  
     // Initial fetch
     getTweetList();
+  }, []);
 
     // // Set interval to fetch every 5 seconds
     // const intervalId = setInterval(() => {
@@ -213,7 +230,7 @@ const TweetComponent = () => {
     // return () => {
     //   clearInterval(intervalId);
     // };
-  }, []); // Empty dependency array to run only once on component mount
+  // }, []); // Empty dependency array to run only once on component mount
 
   const handleShowDivClick = (id) => {
     const commentDiv = document.getElementById(`commentDiv-${id}`);
@@ -251,34 +268,39 @@ const TweetComponent = () => {
           );
 
           const tweetId = tweet.id;
+           // Generate a unique ID for the image element
+           const imageId = `ProfileIMG-${index}`;
+    
+           const fetchTweetAndGetUserImage = async (tweetId, index) => {
+             try {
+               // Fetch tweet data
+               const tweetRef = doc(database, "tweets", tweetId);
+               const tweetDoc = await getDoc(tweetRef);
+     
+               if (tweetDoc.exists()) {
+                 const tweetData = tweetDoc.data();
+                 const tweetProfileIMG = tweetData.UserId
+                
+     
+                 // Check if UserId exists
+                 if (tweetProfileIMG) {
+                   // Use the extracted UserId to construct the path
+                   const imageUrl = await getDownloadURL(ref(storage, `profileimages/${tweetProfileIMG}`));
+     
+                   // Update image element
+                   const img = document.getElementById(imageId);
+                   img.setAttribute("src", imageUrl);
+                   return; // No need to return anything explicitly as the function is asynchronous
+                 }
+               }
 
-          // Generate a unique ID for the image element
-          const imageId = `ProfileIMG-${index}`;
-    
-          const fetchTweetAndGetUserImage = async (tweetId, index) => {
-            try {
-              // Fetch tweet data
-              const tweetRef = doc(database, "tweets", tweetId);
-              const tweetDoc = await getDoc(tweetRef);
-    
-              if (tweetDoc.exists()) {
-                const tweetData = tweetDoc.data();
+               const ImageTweetReff = doc(database, "imagetweets", tweetId);
+               const tweetImageDoc = await getDoc(ImageTweetReff);
+               
+               if (tweetImageDoc.exists()) {
+                const tweetData = tweetImageDoc.data();
                 const tweetProfileIMG = tweetData.UserId
-                const tweetPostImg = tweetData.Image
-
-                const renderTweetImage = (tweetPostImg) => {
-                  if (tweetPostImg) {
-                    return (
-                      <img
-                        src="placeholder"
-                        alt="Image found but could not be displayed"
-                      />
-                    );
-                  } else {
-                    return null; // or <></> for an empty fragment
-                  }
-                };
-      
+               
     
                 // Check if UserId exists
                 if (tweetProfileIMG) {
@@ -291,232 +313,351 @@ const TweetComponent = () => {
                   return; // No need to return anything explicitly as the function is asynchronous
                 }
               }
+     
+               console.warn("User ID not found in tweet data or tweet does not exist.");
+             } catch (error) {
+               console.error("Error fetching tweet or user image:", error);
+             }
+           };
+
     
-              console.warn("User ID not found in tweet data or tweet does not exist.");
-            } catch (error) {
-              console.error("Error fetching tweet or user image:", error);
-            }
-          };
-    
-          // Call the function and pass the index
-          fetchTweetAndGetUserImage(tweetId, index);
+           // Call the function and pass the index
+           fetchTweetAndGetUserImage(tweetId, index);
+ 
+ 
+           const usersCollectionRef = collection(database, "Users");
+           const userID = auth.currentUser.uid;
+         
+ 
+           const addToReposts = async (userId, tweetId) => {
+             try {
+               const userDocRef = doc(usersCollectionRef, userId);
+           
+               // Check if user has already liked the tweet
+               const userDocSnapshot = await getDoc(userDocRef);
+               const userData = userDocSnapshot.data();
+               if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
+                 console.log("User has already liked this tweet.");
+           
+                 // Remove the tweetId from user's liked tweets
+                 await updateDoc(userDocRef, {
+                   repostedTweets: arrayRemove(tweetId),
+                 });
+ 
+                 const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+                 await updateDoc(tweetDocRef, {
+                   Reposts: increment(-1)
+                 })
+           
+                 console.log("Tweet removed from user's liked tweets");
+                 
+                 return; // Exit the function
+               }
+           
+               // Add the tweet to user's liked tweets
+               await updateDoc(userDocRef, {
+                 repostedTweets: arrayUnion(tweetId),
+               });
+     
+               const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+               await updateDoc(tweetDocRef, {
+                 Reposts: increment(1)
+               })
+             } catch (e) {
+               console.error("Error adding tweet to user's liked tweets: ", e);
+             }
+           };
+ 
+           const addToBookmarks = async (userId, tweetId) => {
+             try {
+               const userDocRef = doc(usersCollectionRef, userId);
+           
+               // Check if user has already liked the tweet
+               const userDocSnapshot = await getDoc(userDocRef);
+               const userData = userDocSnapshot.data();
+               if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(tweetId)) {
+                 console.log("User has already liked this tweet.");
+           
+                 // Remove the tweetId from user's liked tweets
+                 await updateDoc(userDocRef, {
+                   bookmarkedTweets: arrayRemove(tweetId),
+                 });
+ 
+                 const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+                 await updateDoc(tweetDocRef, {
+                   Bookmarks: increment(-1)
+                 })
+           
+                 console.log("Tweet removed from user's liked tweets");
+                 
+                 return; // Exit the function
+               }
+           
+               // Add the tweet to user's liked tweets
+               await updateDoc(userDocRef, {
+                 bookmarkedTweets: arrayUnion(tweetId),
+               });
+     
+               const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+               await updateDoc(tweetDocRef, {
+                 Bookmarks: increment(1)
+               })
+             } catch (e) {
+               console.error("Error adding tweet to user's liked tweets: ", e);
+             }
+           };
+ 
+ 
+           const addToLikes = async (userId, tweetId) => {
+             try {
+               const userDocRef = doc(usersCollectionRef, userId);
+           
+               // Check if user has already liked the tweet
+               const userDocSnapshot = await getDoc(userDocRef);
+               const userData = userDocSnapshot.data();
+               if (userData && userData.likedTweets && userData.likedTweets.includes(tweetId)) {
+                 console.log("User has already liked this tweet.");
+           
+                 // Remove the tweetId from user's liked tweets
+                 await updateDoc(userDocRef, {
+                   likedTweets: arrayRemove(tweetId),
+                 });
+ 
+                 const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+                 await updateDoc(tweetDocRef, {
+                   Likes: increment(-1)
+                 })
+           
+                 console.log("Tweet removed from user's liked tweets");
+                 
+                 return; // Exit the function
+               }
+           
+               // Add the tweet to user's liked tweets
+               await updateDoc(userDocRef, {
+                 likedTweets: arrayUnion(tweetId),
+               });
+     
+               const tweetDocRef = doc(collection(database, "tweets"), tweetId);
+               await updateDoc(tweetDocRef, {
+                 Likes: increment(1)
+               })
+             } catch (e) {
+               console.error("Error adding tweet to user's liked tweets: ", e);
+             }
+           };
 
+          if (tweet.type === 'imageTweet') {
+            const tweetIMGRef = ref(storage, `imageuploads/${tweetId}`);
+            const tweetImgId = `tweetIMG-${tweetId}`;
 
-
-          const usersCollectionRef = collection(database, "Users");
-          const userID = auth.currentUser.uid;
-        
-
-          const addToReposts = async (userId, tweetId) => {
-            try {
-              const userDocRef = doc(usersCollectionRef, userId);
-          
-              // Check if user has already liked the tweet
-              const userDocSnapshot = await getDoc(userDocRef);
-              const userData = userDocSnapshot.data();
-              if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
-                console.log("User has already liked this tweet.");
-          
-                // Remove the tweetId from user's liked tweets
-                await updateDoc(userDocRef, {
-                  repostedTweets: arrayRemove(tweetId),
-                });
-
-                const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-                await updateDoc(tweetDocRef, {
-                  Reposts: increment(-1)
-                })
-          
-                console.log("Tweet removed from user's liked tweets");
-                
-                return; // Exit the function
-              }
-          
-              // Add the tweet to user's liked tweets
-              await updateDoc(userDocRef, {
-                repostedTweets: arrayUnion(tweetId),
-              });
-    
-              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-              await updateDoc(tweetDocRef, {
-                Reposts: increment(1)
-              })
-            } catch (e) {
-              console.error("Error adding tweet to user's liked tweets: ", e);
-            }
-          };
-
-          const addToBookmarks = async (userId, tweetId) => {
-            try {
-              const userDocRef = doc(usersCollectionRef, userId);
-          
-              // Check if user has already liked the tweet
-              const userDocSnapshot = await getDoc(userDocRef);
-              const userData = userDocSnapshot.data();
-              if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(tweetId)) {
-                console.log("User has already liked this tweet.");
-          
-                // Remove the tweetId from user's liked tweets
-                await updateDoc(userDocRef, {
-                  bookmarkedTweets: arrayRemove(tweetId),
-                });
-
-                const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-                await updateDoc(tweetDocRef, {
-                  Bookmarks: increment(-1)
-                })
-          
-                console.log("Tweet removed from user's liked tweets");
-                
-                return; // Exit the function
-              }
-          
-              // Add the tweet to user's liked tweets
-              await updateDoc(userDocRef, {
-                bookmarkedTweets: arrayUnion(tweetId),
-              });
-    
-              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-              await updateDoc(tweetDocRef, {
-                Bookmarks: increment(1)
-              })
-            } catch (e) {
-              console.error("Error adding tweet to user's liked tweets: ", e);
-            }
-          };
-
-
-          const addToLikes = async (userId, tweetId) => {
-            try {
-              const userDocRef = doc(usersCollectionRef, userId);
-          
-              // Check if user has already liked the tweet
-              const userDocSnapshot = await getDoc(userDocRef);
-              const userData = userDocSnapshot.data();
-              if (userData && userData.likedTweets && userData.likedTweets.includes(tweetId)) {
-                console.log("User has already liked this tweet.");
-          
-                // Remove the tweetId from user's liked tweets
-                await updateDoc(userDocRef, {
-                  likedTweets: arrayRemove(tweetId),
-                });
-
-                const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-                await updateDoc(tweetDocRef, {
-                  Likes: increment(-1)
-                })
-          
-                console.log("Tweet removed from user's liked tweets");
-                
-                return; // Exit the function
-              }
-          
-              // Add the tweet to user's liked tweets
-              await updateDoc(userDocRef, {
-                likedTweets: arrayUnion(tweetId),
-              });
-    
-              const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-              await updateDoc(tweetDocRef, {
-                Likes: increment(1)
-              })
-            } catch (e) {
-              console.error("Error adding tweet to user's liked tweets: ", e);
-            }
-          };
-
-          return (
-            <div key={tweet.id}>
-              <div className="flex-col p-3 Shadow">
-                <div className="flex flex-row my-5">
-                  <img
-                    id={imageId}
-                    src={avatarIMG}
-                    className="col-start-1 col-end-1 row-start-1 row-end-2"
-                    style={{ height: "32px", borderRadius: "50%" }}
-                    alt="User Avatar"
-                  />
-                  <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
-                </div>
-                <p className="flex flex-col my-5">{tweet.Post}</p>
-                {renderTweetImage(tweetPostImg)}
-                <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
-                <div className="flex flex-row w-full justify-evenly">
-                  <button type="button" onClick={openCommentForm}>
-                    <FontAwesomeIcon
-                      icon={faComment}
-                      style={{ color: "#3f44d9" }}
+// Step 3: Use getDownloadURL to fetch the URL of the image
+getDownloadURL(tweetIMGRef)
+  .then((url) => {
+    // Step 4: Update the src attribute of the img tag with the downloaded URL
+    const imgElement = document.getElementById(tweetImgId);
+    if (imgElement) {
+      imgElement.src = url;
+    }
+  })
+  .catch((error) => {
+    console.error("Error getting download URL:", error);
+  });
+            return (
+              <section key={tweet.id}>
+                <div className="flex-col p-3 Shadow">
+                  <div className="flex flex-row my-5">
+                    <img
+                      id={imageId}
+                      src={avatarIMG}
+                      className="col-start-1 col-end-1 row-start-1 row-end-2"
+                      style={{ height: "32px", borderRadius: "50%" }}
+                      alt="User Avatar"
                     />
-                  </button>
-                  <p>
-                    <FontAwesomeIcon
-                      icon={faRepeat}
-                      rotation={90}
-                      style={{ color: "#28d74b", cursor:"pointer" }}
-                      onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+                    <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
+                  </div> 
+                  <p className="flex flex-col my-5">{tweet.Post}</p>
+                  <div className="flex justify-center">
+                  <img
+  id={tweetImgId}
+  className="my-16"
+  src={imageUploadPlaceholder} // Provide a placeholder image or initial value
+  alt="Could not display image"
+  style={{ maxHeight: "420px", borderRadius:"2%",  }}
+/>
+</div>
+                  <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
+                  <div className="flex flex-row w-full justify-evenly">
+                    <button type="button" onClick={openCommentForm}>
+                      <FontAwesomeIcon
+                        icon={faComment}
+                        style={{ color: "#3f44d9" }}
+                      />
+                    </button>
+                    <p>
+                      <FontAwesomeIcon
+                        icon={faRepeat}
+                        rotation={90}
+                        style={{ color: "#28d74b", cursor:"pointer" }}
+                        onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+                        />{" "}
+                        {tweet.Reposts}
+                    </p>
+                    <p>
+                      <FontAwesomeIcon
+                        icon={faHeart}
+                        style={{ color: "#e60f4f", cursor: "pointer" }}
+                        onClick={() => addToLikes(userID, tweetId)} // Call addToLikes with tweet id
                       />{" "}
-                      {tweet.Reposts}
-                  </p>
-                  <p>
-                    <FontAwesomeIcon
-                      icon={faHeart}
-                      style={{ color: "#e60f4f", cursor: "pointer" }}
-                      onClick={() => addToLikes(userID, tweetId)} // Call addToLikes with tweet id
-                    />{" "}
-                    {tweet.Likes}
-                  </p>
-                  <p>
-                    <FontAwesomeIcon
-                      icon={faBookmark}
-                      style={{ color: "#3f44d9", cursor: "pointer" }}
-                      onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
-                      />{" "}
-                      {tweet.Bookmarks}
-                  </p>
+                      {tweet.Likes}
+                    </p>
+                    <p>
+                      <FontAwesomeIcon
+                        icon={faBookmark}
+                        style={{ color: "#3f44d9", cursor: "pointer" }}
+                        onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
+                        />{" "}
+                        {tweet.Bookmarks}
+                    </p>
+                  </div>
+                  {isCommentFormOpen && <CommentForm />}
                 </div>
-                {isCommentFormOpen && <CommentForm />}
-              </div>
-              <div
-                className="commentDiv"
-                id={`commentDiv-${tweet.id}`}
-                style={{
-                  display: "none",
-                  top: "100%",
-                  left: "0",
-                  backgroundColor: "white",
-                  padding: "10px",
-                }}
-              >
-                {tweetComments && tweetComments.length > 0 ? (
-                  tweetComments.map((commentBlock, index) => (
-                    <div key={index}>
-                      {Array.isArray(commentBlock) ? (
-                        commentBlock.map((comment, idx) => (
-                          <div key={idx}>
-                            <p>{comment.commentText}</p>
-                            <p>{comment.Username}</p>
-                            <p>{comment.Likes}</p>
-                          </div>
-                        ))
-                      ) : (
-                        <p>{commentBlock}</p>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p>No comments available</p>
-                )}
-              </div>
-              <div className="w-full p-1 Shadow text-center">
-                <button
-                  className="text-indigo-600"
-                  onClick={() => handleShowDivClick(tweet.id)}
+                <div
+                  className="commentDiv"
+                  id={`commentDiv-${tweet.id}`}
+                  style={{
+                    display: "none",
+                    top: "100%",
+                    left: "0",
+                    backgroundColor: "white",
+                    padding: "10px",
+                  }}
                 >
-                  Show Comments
-                </button>
-              </div>
-            </div>
-          );
+                  {tweetComments && tweetComments.length > 0 ? (
+                    tweetComments.map((commentBlock, index) => (
+                      <div key={index}>
+                        {Array.isArray(commentBlock) ? (
+                          commentBlock.map((comment, idx) => (
+                            <div key={idx}>
+                              <p>{comment.commentText}</p>
+                              <p>{comment.Username}</p>
+                              <p>{comment.Likes}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p>{commentBlock}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No comments available</p>
+                  )}
+                </div>
+                <div className="w-full p-1 Shadow text-center">
+                  <button
+                    className="text-indigo-600"
+                    onClick={() => handleShowDivClick(tweet.id)}
+                  >
+                    Show Comments
+                  </button>
+                </div>
+              </section>
+            );
+          }
+
+          if (tweet.type === 'tweet') {
+            return (
+              <section key={tweet.id}>
+                <div className="flex-col p-3 Shadow">
+                  <div className="flex flex-row my-5">
+                    <img
+                      id={imageId}
+                      src={avatarIMG}
+                      className="col-start-1 col-end-1 row-start-1 row-end-2"
+                      style={{ height: "32px", borderRadius: "50%" }}
+                      alt="User Avatar"
+                    />
+                    <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
+                  </div> 
+                  <p className="flex flex-col my-5">{tweet.Post}</p>
+                  <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
+                  <div className="flex flex-row w-full justify-evenly">
+                    <button type="button" onClick={openCommentForm}>
+                      <FontAwesomeIcon
+                        icon={faComment}
+                        style={{ color: "#3f44d9" }}
+                      />
+                    </button>
+                    <p>
+                      <FontAwesomeIcon
+                        icon={faRepeat}
+                        rotation={90}
+                        style={{ color: "#28d74b", cursor:"pointer" }}
+                        onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+                        />{" "}
+                        {tweet.Reposts}
+                    </p>
+                    <p>
+                      <FontAwesomeIcon
+                        icon={faHeart}
+                        style={{ color: "#e60f4f", cursor: "pointer" }}
+                        onClick={() => addToLikes(userID, tweetId)} // Call addToLikes with tweet id
+                      />{" "}
+                      {tweet.Likes}
+                    </p>
+                    <p>
+                      <FontAwesomeIcon
+                        icon={faBookmark}
+                        style={{ color: "#3f44d9", cursor: "pointer" }}
+                        onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
+                        />{" "}
+                        {tweet.Bookmarks}
+                    </p>
+                  </div>
+                  {isCommentFormOpen && <CommentForm />}
+                </div>
+                <div
+                  className="commentDiv"
+                  id={`commentDiv-${tweet.id}`}
+                  style={{
+                    display: "none",
+                    top: "100%",
+                    left: "0",
+                    backgroundColor: "white",
+                    padding: "10px",
+                  }}
+                >
+                  {tweetComments && tweetComments.length > 0 ? (
+                    tweetComments.map((commentBlock, index) => (
+                      <div key={index}>
+                        {Array.isArray(commentBlock) ? (
+                          commentBlock.map((comment, idx) => (
+                            <div key={idx}>
+                              <p>{comment.commentText}</p>
+                              <p>{comment.Username}</p>
+                              <p>{comment.Likes}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p>{commentBlock}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No comments available</p>
+                  )}
+                </div>
+                <div className="w-full p-1 Shadow text-center">
+                  <button
+                    className="text-indigo-600"
+                    onClick={() => handleShowDivClick(tweet.id)}
+                  >
+                    Show Comments
+                  </button>
+                </div>
+              </section>
+            );
+          }
         })}
     </>
   );

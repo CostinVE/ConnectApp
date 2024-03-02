@@ -72,7 +72,7 @@ const ImageUploadForm = () => {
 
     try {
       const userID = auth?.currentUser?.uid;
-      const tweetCollectionRef = collection(database, "tweets");
+      const imageCollectionRef = collection(database, "imagetweets");
       const user = await getUserByUserID(userID);
   
       if (!imageFile) {
@@ -91,13 +91,13 @@ const ImageUploadForm = () => {
         Image: '' // Placeholder for imageURL
       };
   
-      const newPostRef = await addDoc(tweetCollectionRef, newPostData);
+      const newPostRef = await addDoc(imageCollectionRef, newPostData);
       const newPostID = newPostRef.id;
   
       // Update the PostRef collection with the document ID
       const PostRef = doc(database, "Users", userID); // Reference to the document in the Users collection corresponding to the current user
       await updateDoc(PostRef, {
-        Posts: arrayUnion(newPostID)
+        ImagePosts: arrayUnion(newPostID)
       });
   
   
