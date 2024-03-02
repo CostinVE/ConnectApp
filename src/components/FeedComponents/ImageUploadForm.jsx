@@ -10,8 +10,7 @@ import { database, auth, storage } from '../../config/firebase.jsx';
 import { collection, addDoc, Timestamp, getDocs, doc, updateDoc, arrayUnion} from 'firebase/firestore';
 import {ref, getDownloadURL, uploadBytes} from 'firebase/storage'
 import { getUserByUserID } from "../getUserByUsername.jsx";
-import TweetComponent from "./TweetComponent.jsx";
-import { useNavigate } from "react-router-dom";
+
 
 
 

@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faRepeat, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 
+
 import React, { useState, useEffect} from "react";
 import '../../index.css';
 import { database, auth, storage } from '../../config/firebase.jsx';
@@ -15,7 +16,7 @@ import {ref, getDownloadURL} from 'firebase/storage'
 import { getUserByUserID } from "../getUserByUsername.jsx";
 import TweetComponent from "./TweetComponent.jsx";
 import { useNavigate } from "react-router-dom";
-
+import { EmojiHolder } from "../../assets/EmojiHolder.jsx";
 
 
 export const MainFeed = () => {
@@ -28,6 +29,11 @@ export const MainFeed = () => {
   const handleUploadImage = () => {
     navigate("/ConnectApp/ImagePost");
   }
+
+  const handlePoolUpload= () => {
+    navigate("/ConnectApp/PoolPost");
+  }
+
 
 
   const tweetCollectionRef = collection(database, "tweets");
@@ -108,7 +114,17 @@ export const MainFeed = () => {
   //   return () => clearTimeout(timeoutId);
   // }, []); // Empty dependency array ensures this effect runs only once
 
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(prevState => !prevState);
+  };
+
+  const handleEmojiClick = (emoji) => {
+    setNewPost((prevPost) => prevPost + emoji);
+  };
   
+
   
   
   return (
@@ -135,12 +151,13 @@ export const MainFeed = () => {
           onChange={(event) => setNewPost(event.target.value)}
         />
 
-        <div className="col-start-2 col-end-4 row-start-2 row-end-2 flex items-center">
+        <div className="col-start-2 col-end-4 row-start-2 row-end-2 flex items-center relative">
           <img src={imagePNG} onClick={handleUploadImage} style={{ height: '20px', marginRight: "40px", cursor: "pointer" }} alt="Image Icon" />
           <img src={gifPNG} style={{ height: '20px', marginRight: "40px", cursor: "pointer" }} alt="GIF Icon" />
-          <img src={emojiPNG} style={{ height: '20px', marginRight: "40px", cursor: "pointer" }} alt="Emoji Icon" />
-          <img src={pollPNG} style={{ height: '20px', marginRight: "40px", cursor: "pointer" }} alt="Poll Icon" />
+          <img src={emojiPNG} onClick={toggleEmojiPicker} style={{ height: '20px', marginRight: "40px", cursor: "pointer" }} alt="Emoji Icon" />
+          <img src={pollPNG} onClick={handlePoolUpload} style={{ height: '20px', marginRight: "40px", cursor: "pointer" }} alt="Poll Icon" />
         </div>
+        {showEmojiPicker && <EmojiHolder onEmojiClick={handleEmojiClick} />}
         <div className="col-start-4 col-end-5 row-start-2 row-end-3">
           <button className="bg-indigo-600 hover:bg-indigo-500 w-2/3 text-white font-bold py-2 px-5 rounded-full" onClick={onPost}>Post</button>
         </div>
