@@ -22,6 +22,7 @@ import avatarIMG from "../../assets/avatarIMG.png";
 import gifPNG from "../../assets/gif.png";
 import emojiPNG from "../../assets/smile.png";
 import imagePNG from "../../assets/imageupload.png";
+import imageUploadPlaceholder from "../../assets/imageuploadplaceholder.png"
 
 const TweetComponent = () => {
   const tweetCollectionRef = collection(database, "tweets");
@@ -203,15 +204,15 @@ const TweetComponent = () => {
     // Initial fetch
     getTweetList();
 
-    // Set interval to fetch every 5 seconds
-    const intervalId = setInterval(() => {
-      getTweetList();
-    }, 10000);
+    // // Set interval to fetch every 5 seconds
+    // const intervalId = setInterval(() => {
+    //   getTweetList();
+    // }, 10000);
 
-    // Cleanup interval on component unmount
-    return () => {
-      clearInterval(intervalId);
-    };
+    // // Cleanup interval on component unmount
+    // return () => {
+    //   clearInterval(intervalId);
+    // };
   }, []); // Empty dependency array to run only once on component mount
 
   const handleShowDivClick = (id) => {
@@ -232,13 +233,13 @@ const TweetComponent = () => {
   console.log(userID);
 
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      refreshTweetComponent();
-    }, 250000);
+  // useEffect(() => {
+  //   const intervalId = setInterval(() => {
+  //     refreshTweetComponent();
+  //   }, 250000);
 
-    return () => clearInterval(intervalId);
-  }, []);
+  //   return () => clearInterval(intervalId);
+  // }, []);
 
   return (
     <>
@@ -263,6 +264,21 @@ const TweetComponent = () => {
               if (tweetDoc.exists()) {
                 const tweetData = tweetDoc.data();
                 const tweetProfileIMG = tweetData.UserId
+                const tweetPostImg = tweetData.Image
+
+                const renderTweetImage = (tweetPostImg) => {
+                  if (tweetPostImg) {
+                    return (
+                      <img
+                        src="placeholder"
+                        alt="Image found but could not be displayed"
+                      />
+                    );
+                  } else {
+                    return null; // or <></> for an empty fragment
+                  }
+                };
+      
     
                 // Check if UserId exists
                 if (tweetProfileIMG) {
@@ -423,6 +439,7 @@ const TweetComponent = () => {
                   <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
                 </div>
                 <p className="flex flex-col my-5">{tweet.Post}</p>
+                {renderTweetImage(tweetPostImg)}
                 <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
                 <div className="flex flex-row w-full justify-evenly">
                   <button type="button" onClick={openCommentForm}>

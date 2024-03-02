@@ -12,7 +12,7 @@ import { ChooseUsername } from "./components/ChooseUsername";
 import { ProfilePage } from "./components/Profile/ProfilePage";
 import { BookmarksFeed } from "./components/Profile/BookmarksFeed";
 import { IndividualPost } from "./components/Profile/IndividualPost";
-
+import ImageUploadForm from "./components/FeedComponents/ImageUploadForm";
 
 let reloadFlag = localStorage.getItem('reloadProfilePage');
 
@@ -68,6 +68,10 @@ const router = createBrowserRouter([
   {
     path: "/ConnectApp/tweets/*",
     element: <Layout><Sidebar/><IndividualPost/></Layout>, // Update import path
+  },
+  {
+    path: "/ConnectApp/ImagePost",
+    element: <Layout><Sidebar/><ImageUploadForm/></Layout>, // Update import path
   },
 ]);
 
