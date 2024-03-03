@@ -24,6 +24,7 @@ export const MainFeed = () => {
   const [tweetList, setTweetList] = useState([])
   const [newPost, setNewPost] = useState('');
   
+  
   const navigate = useNavigate()
 
   const handleUploadImage = () => {

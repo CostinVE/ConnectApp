@@ -26,7 +26,18 @@ import imageUploadPlaceholder from "../../assets/imageuploadplaceholder.png"
 
 const TweetComponent = () => {
   const tweetCollectionRef = collection(database, "tweets");
+  const poolCollectionRef = collection(database, "pooltweets")
   const imageTweetCollectionRef = collection(database, "imagetweets")
+
+  const [percentages, setPercentages] = useState({
+    totalPercentage: 0,
+    option1Percentage: 0,
+    option2Percentage: 0,
+    option3Percentage: 0,
+    option4Percentage: 0
+  });
+
+
 
   const [tweetList, setTweetList] = useState([]);
 
@@ -203,8 +214,15 @@ const TweetComponent = () => {
           type: 'imageTweet' // Add a type field to distinguish between tweets and image tweets
         }));
   
-        // Combine data from both collections into one array
-        const combinedData = [...tweetListData, ...imageTweetListData];
+          const poolTweetData = await getDocs(poolCollectionRef);
+      const poolTweetListData = poolTweetData.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        type: 'poolTweet' // Add a type field to distinguish between regular tweets and pool tweets
+      }));
+
+      // Combine data from all collections into one array
+      const combinedData = [...tweetListData, ...imageTweetListData, ...poolTweetListData];
   
         // Set the combined data as the tweet list
         setTweetList(combinedData);
@@ -447,6 +465,8 @@ const TweetComponent = () => {
              }
            };
 
+           
+
           if (tweet.type === 'imageTweet') {
             const tweetIMGRef = ref(storage, `imageuploads/${tweetId}`);
             const tweetImgId = `tweetIMG-${tweetId}`;
@@ -564,6 +584,252 @@ getDownloadURL(tweetIMGRef)
               </section>
             );
           }
+
+    //       if (tweet.type === 'poolTweet') {
+    //         const poolDocRef = doc(collection(database, "pooltweets"), tweetId);
+      
+    //         const userId = auth?.currentUser?.uid;
+          
+    //         getDoc(poolDocRef)
+    // .then((poolDocSnapshot) => {
+    //   if (poolDocSnapshot.exists()) {
+    //     const { TotalVotesCounter, Option1Votes, Option2Votes, Option3Votes, Option4Votes } = poolDocSnapshot.data();
+
+    //     // Calculate percentages
+    //     const totalPercentage = TotalVotesCounter > 0 ? 100 : 0;
+    //     const option1Percentage = (Option1Votes / TotalVotesCounter) * 100;
+    //     const option2Percentage = (Option2Votes / TotalVotesCounter) * 100;
+    //     const option3Percentage = (Option3Votes / TotalVotesCounter) * 100;
+    //     const option4Percentage = (Option4Votes / TotalVotesCounter) * 100;
+        
+
+
+    //    setPercentages({
+    //           totalPercentage,
+    //           option1Percentage,
+    //           option2Percentage,
+    //           option3Percentage,
+    //           option4Percentage
+    //         });
+    //   } else {
+    //     console.error("Document does not exist.");
+    //   }
+    // })
+    // .catch((error) => {
+    //   console.error("Error fetching or calculating percentages:", error);
+    // });
+
+            
+            
+    // const handleOption1 = async () => {
+
+    //   try {
+    //     // Fetch the document data
+    //     const poolDocSnapshot = await getDoc(poolDocRef);
+    //     const tweet = poolDocSnapshot.data();
+    
+    //     // Check if the user has already voted
+    //     const alreadyVoted = tweet.UsersVoted && tweet.UsersVoted.includes(userId);
+    //     if (alreadyVoted) {
+    //       alert("User has already voted");
+    //       return; // Prevent further execution
+    //     }
+    
+    //     // Update the document with Option1Votes and increment TotalVotesCounter
+    //     updateDoc(poolDocRef, {
+    //       Option1Votes: increment(100),
+    //       TotalVotesCounter: increment(100),
+    //       UsersVoted: arrayUnion(userId)
+    //     });
+    
+    //     // Handle success
+    //     console.log("Vote registered successfully!");
+    //   } catch (error) {
+    //     console.error("Error updating document:", error);
+    //   }
+    // };
+
+    // const handleOption2 = async () => {
+
+    //   try {
+    //     // Fetch the document data
+    //     const poolDocSnapshot = await getDoc(poolDocRef);
+    //     const tweet = poolDocSnapshot.data();
+    
+    //     // Check if the user has already voted
+    //     const alreadyVoted = tweet.UsersVoted && tweet.UsersVoted.includes(userId);
+    //     if (alreadyVoted) {
+    //       alert("User has already voted");
+    //       return; // Prevent further execution
+    //     }
+    
+    //     // Update the document with Option1Votes and increment TotalVotesCounter
+    //     updateDoc(poolDocRef, {
+    //       Option2Votes: increment(100),
+    //       TotalVotesCounter: increment(100),
+    //       UsersVoted: arrayUnion(userId)
+    //     });
+    
+    //     // Handle success
+    //     console.log("Vote registered successfully!");
+    //   } catch (error) {
+    //     console.error("Error updating document:", error);
+    //   }
+    // };
+    // const handleOption3 = async () => {
+
+    //   try {
+    //     // Fetch the document data
+    //     const poolDocSnapshot = await getDoc(poolDocRef);
+    //     const tweet = poolDocSnapshot.data();
+    
+    //     // Check if the user has already voted
+    //     const alreadyVoted = tweet.UsersVoted && tweet.UsersVoted.includes(userId);
+    //     if (alreadyVoted) {
+    //       alert("User has already voted");
+    //       return; // Prevent further execution
+    //     }
+    
+    //     // Update the document with Option1Votes and increment TotalVotesCounter
+    //     updateDoc(poolDocRef, {
+    //       Option3Votes: increment(100),
+    //       TotalVotesCounter: increment(100),
+    //       UsersVoted: arrayUnion(userId)
+    //     });
+    
+    //     // Handle success
+    //     console.log("Vote registered successfully!");
+    //   } catch (error) {
+    //     console.error("Error updating document:", error);
+    //   }
+    // };
+    // const handleOption4 = async () => {
+
+    //   try {
+    //     // Fetch the document data
+    //     const poolDocSnapshot = await getDoc(poolDocRef);
+    //     const tweet = poolDocSnapshot.data();
+    
+    //     // Check if the user has already voted
+    //     const alreadyVoted = tweet.UsersVoted && tweet.UsersVoted.includes(userId);
+    //     if (alreadyVoted) {
+    //       alert("User has already voted");
+    //       return; // Prevent further execution
+    //     }
+    
+    //     // Update the document with Option1Votes and increment TotalVotesCounter
+    //     updateDoc(poolDocRef, {
+    //       Option4Votes: increment(100),
+    //       TotalVotesCounter: increment(100),
+    //       UsersVoted: arrayUnion(userId)
+    //     });
+    
+    //     // Handle success
+    //     console.log("Vote registered successfully!");
+    //   } catch (error) {
+    //     console.error("Error updating document:", error);
+    //   }
+    // };
+
+//             return (
+//               <section key={tweet.id}>
+//                 <div className="flex-col p-3 Shadow">
+//                   <div className="flex flex-row my-5">
+//                     <img
+//                       id={imageId}
+//                       src={avatarIMG}
+//                       className="col-start-1 col-end-1 row-start-1 row-end-2"
+//                       style={{ height: "32px", borderRadius: "50%" }}
+//                       alt="User Avatar"
+//                     />
+//                     <p className="lato-bold">&nbsp;&nbsp;{tweet.UserName}</p>
+//                   </div> 
+//                   <p className="flex flex-col my-5">{tweet.Post}</p>
+//                   <div className="flex flex-col mx-2 my-8 justify-center">
+//                     {/* <label className="w-full p-2 my-2 rounded-lg bg-slate-200 hover:bg-indigo-200"  onClick={() => handleOption1(tweetId)}>{tweet.FirstOption} {option1Percentage}  </label>
+//                     <label className="w-full p-2 my-2 rounded-lg bg-slate-200 hover:bg-indigo-200"  onClick={() => handleOption2(tweetId)}>{tweet.SecondOption} {option2Percentage}%</label>
+//                     <label className="w-full p-2 my-2 rounded-lg bg-slate-200 hover:bg-indigo-200"  onClick={() => handleOption3(tweetId)}>{tweet.ThirdOption}</label>
+//                     <label className="w-full p-2 my-2 rounded-lg bg-slate-200 hover:bg-indigo-200"  onClick={() => handleOption4(tweetId)}>{tweet.FourthOption}</label> */}
+
+// </div>
+//                   <p>{formattedDate(tweet.Timestamp?.seconds)}</p>
+//                   <div className="flex flex-row w-full justify-evenly">
+//                     <button type="button" onClick={openCommentForm}>
+//                       <FontAwesomeIcon
+//                         icon={faComment}
+//                         style={{ color: "#3f44d9" }}
+//                       />
+//                     </button>
+//                     <p>
+//                       <FontAwesomeIcon
+//                         icon={faRepeat}
+//                         rotation={90}
+//                         style={{ color: "#28d74b", cursor:"pointer" }}
+//                         onClick={() => addToReposts(userID, tweetId)} // Call addToReposts
+//                         />{" "}
+//                         {tweet.Reposts}
+//                     </p>
+//                     <p>
+//                       <FontAwesomeIcon
+//                         icon={faHeart}
+//                         style={{ color: "#e60f4f", cursor: "pointer" }}
+//                         onClick={() => addToLikes(userID, tweetId)} // Call addToLikes with tweet id
+//                       />{" "}
+//                       {tweet.Likes}
+//                     </p>
+//                     <p>
+//                       <FontAwesomeIcon
+//                         icon={faBookmark}
+//                         style={{ color: "#3f44d9", cursor: "pointer" }}
+//                         onClick={() => addToBookmarks(userID, tweetId)} // Call addToBookMarks
+//                         />{" "}
+//                         {tweet.Bookmarks}
+//                     </p>
+//                   </div>
+//                   {isCommentFormOpen && <CommentForm />}
+//                 </div>
+//                 <div
+//                   className="commentDiv"
+//                   id={`commentDiv-${tweet.id}`}
+//                   style={{
+//                     display: "none",
+//                     top: "100%",
+//                     left: "0",
+//                     backgroundColor: "white",
+//                     padding: "10px",
+//                   }}
+//                 >
+//                   {tweetComments && tweetComments.length > 0 ? (
+//                     tweetComments.map((commentBlock, index) => (
+//                       <div key={index}>
+//                         {Array.isArray(commentBlock) ? (
+//                           commentBlock.map((comment, idx) => (
+//                             <div key={idx}>
+//                               <p>{comment.commentText}</p>
+//                               <p>{comment.Username}</p>
+//                               <p>{comment.Likes}</p>
+//                             </div>
+//                           ))
+//                         ) : (
+//                           <p>{commentBlock}</p>
+//                         )}
+//                       </div>
+//                     ))
+//                   ) : (
+//                     <p>No comments available</p>
+//                   )}
+//                 </div>
+//                 <div className="w-full p-1 Shadow text-center">
+//                   <button
+//                     className="text-indigo-600"
+//                     onClick={() => handleShowDivClick(tweet.id)}
+//                   >
+//                     Show Comments
+//                   </button>
+//                 </div>
+//               </section>
+//             );
+//           }
 
           if (tweet.type === 'tweet') {
             return (
