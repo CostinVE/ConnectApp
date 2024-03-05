@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import "../../index.css"
+import { useNavigate } from 'react-router-dom';
 
 import avatarIMG from "../../assets/avatarIMG.png"; 
 import backgroundIMG from "../../assets/backgroundplaceholder.jpg";
@@ -19,6 +20,15 @@ export const ProfilePage = () => {
     const [imageUpload, setImageUpload] = useState(null);
     const [username, setUsername] = useState()
     const [creationTime, setCreationTime] = useState(null);
+
+
+    const navigate = useNavigate()
+
+    const handleGoBack = () => {
+        navigate(-1);
+      };
+
+
    
     console.log(userID)
 
@@ -60,6 +70,8 @@ export const ProfilePage = () => {
 
 
       const fetchUserName = async () => {
+        let loadingTimeout;
+    
         try {
             const user = await getUserByUserID(auth?.currentUser?.uid);
             if (user) {
@@ -75,11 +87,15 @@ export const ProfilePage = () => {
         } catch (error) {
             console.error('Error fetching user:', error);
         } finally {
-            clearTimeout(loadingTimeout); // Cancel the loading timeout if data fetching is complete
-            setLoading(false); // Hide loading screen
+            // Set a timeout for 1.2 seconds before clearing the loading timeout and hiding loading screen
+            loadingTimeout = setTimeout(() => {
+                clearTimeout(loadingTimeout); // Cancel the loading timeout if data fetching is complete
+                setLoading(false); // Hide loading screen
+            }, 1200);
         }
     };
-    fetchUserName()
+    
+    fetchUserName();
 
     
 
@@ -178,7 +194,7 @@ export const ProfilePage = () => {
 
     return (
         <div className="flex flex-col w-5/12 lato-regular">
-            <div className='flex flex-row justify-between my-3'><FontAwesomeIcon icon={faLeftLong} style={{fontSize:"22px"}} /> <p className=''>{username} </p> <span></span> </div>
+            <div className='flex flex-row justify-between my-3'><FontAwesomeIcon icon={faLeftLong} style={{fontSize:"22px", cursor:"pointer"}} onClick={handleGoBack} /> <p className=''>{username} </p> <span></span> </div>
             <div className='relative'>
                 <img
                     src={backgroundIMG}

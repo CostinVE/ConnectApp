@@ -26,7 +26,6 @@ export const fetchUserPosts = async () => {
   const userID = auth.currentUser.uid;
 
   
-
   
   try {
       const formattedDate = (timestamp) => {
@@ -64,6 +63,7 @@ export const fetchUserPosts = async () => {
                     }
                     return null;
                 };
+
     
         const addToReposts = async (userId, postID) => {
           try {

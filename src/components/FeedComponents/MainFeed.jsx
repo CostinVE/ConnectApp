@@ -96,24 +96,24 @@ export const MainFeed = () => {
   };
   
   
-  // useEffect(() => {
-  //   const timeoutId = setTimeout(() => {
-  //     // Refresh only the specified part after 1.5 seconds
-  //     const userID = auth?.currentUser?.uid;
-  //     console.log(userID);
-  //     getDownloadURL(ref(storage, `profileimages/${userID}`))
-  //       .then((url) => {
-  //         const img = document.getElementById('ProfileIMG');
-  //         img.setAttribute('src', url);
-  //       })
-  //       .catch((error) => {
-  //         console.error('Error setting image source:', error);
-  //       });
-  //   }, 500);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Refresh only the specified part after 1.5 seconds
+      const userID = auth?.currentUser?.uid;
+      console.log(userID);
+      getDownloadURL(ref(storage, `profileimages/${userID}`))
+        .then((url) => {
+          const img = document.getElementById('ProfileIMG');
+          img.setAttribute('src', url);
+        })
+        .catch((error) => {
+          console.error('Error setting image source:', error);
+        });
+    }, 500);
 
-  //   // Cleanup the timeout to prevent memory leaks
-  //   return () => clearTimeout(timeoutId);
-  // }, []); // Empty dependency array ensures this effect runs only once
+    // Cleanup the timeout to prevent memory leaks
+    return () => clearTimeout(timeoutId);
+  }, []); // Empty dependency array ensures this effect runs only once
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -129,11 +129,8 @@ export const MainFeed = () => {
   
   
   return (
-    <div className="flex-none flex-col w-5/12 lato-regular ">
-      <div className="grid w-9/12 grid-cols-2 gap-x-2 my-5">
-        <p className="lato-bold ">For you</p>
-        <p className="lato-bold opacity-50">Following</p>
-      </div>
+    <div className="flex-none flex-col w-5/12 lato-regular my-10 overflow-y-auto ">
+     
 
     {/* Tweet form */}
       <section className="grid grid-cols-4 gap-2 Shadow">
@@ -176,9 +173,6 @@ export const MainFeed = () => {
       </section>
       {/* Feed space */}
       <section className="flex-col w-full">
-
-
-        
       <TweetComponent />
       </section>
     </div>

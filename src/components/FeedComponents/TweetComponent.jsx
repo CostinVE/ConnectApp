@@ -288,6 +288,7 @@ const TweetComponent = () => {
           const tweetId = tweet.id;
            // Generate a unique ID for the image element
            const imageId = `ProfileIMG-${index}`;
+  
     
            const fetchTweetAndGetUserImage = async (tweetId, index) => {
              try {
@@ -345,50 +346,72 @@ const TweetComponent = () => {
  
            const usersCollectionRef = collection(database, "Users");
            const userID = auth.currentUser.uid;
+           const tweetType = tweet.type
          
  
            const addToReposts = async (userId, tweetId) => {
-             try {
-               const userDocRef = doc(usersCollectionRef, userId);
-           
-               // Check if user has already liked the tweet
-               const userDocSnapshot = await getDoc(userDocRef);
-               const userData = userDocSnapshot.data();
-               if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
-                 console.log("User has already liked this tweet.");
-           
-                 // Remove the tweetId from user's liked tweets
-                 await updateDoc(userDocRef, {
-                   repostedTweets: arrayRemove(tweetId),
-                 });
+            try {
+              let tweetCollectionRef;
+              if (tweetType === 'imageTweet') {
+                tweetCollectionRef = doc(collection(database, "imagetweets"), tweetId);
+              } else if (tweetType === 'poolTweet') {
+                tweetCollectionRef = doc(collection(database, "pooltweets"), tweetId);
+              } else {
+                tweetCollectionRef = doc(collection(database, "tweets"), tweetId);
+              }
+          
+          
+              const userDocRef = doc(usersCollectionRef, userId);
+          
+              // Check if user has already reposted the tweet
+              const userDocSnapshot = await getDoc(userDocRef);
+              const userData = userDocSnapshot.data();
+              if (userData && userData.repostedTweets && userData.repostedTweets.includes(tweetId)) {
+                console.log("User has already reposted this tweet.");
+          
+                // Remove the tweetId from user's reposted tweets
+                await updateDoc(userDocRef, {
+                  repostedTweets: arrayRemove(tweetId),
+                });
+          
+                // Decrease the repost count
+                await updateDoc(tweetCollectionRef, {
+                  Reposts: increment(-1)
+                });
+          
+                console.log("Tweet removed from user's reposted tweets");
+          
+                return; // Exit the function
+              }
+          
+              // Add the tweet to user's reposted tweets
+              await updateDoc(userDocRef, {
+                repostedTweets: arrayUnion(tweetId),
+              });
+          
+              // Increase the repost count
+              await updateDoc(tweetCollectionRef, {
+                Reposts: increment(1)
+              });
+          
+              console.log("Tweet added to user's reposted tweets");
+            } catch (e) {
+              console.error("Error reposting tweet: ", e);
+            }
+          };
  
-                 const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-                 await updateDoc(tweetDocRef, {
-                   Reposts: increment(-1)
-                 })
-           
-                 console.log("Tweet removed from user's liked tweets");
-                 
-                 return; // Exit the function
-               }
-           
-               // Add the tweet to user's liked tweets
-               await updateDoc(userDocRef, {
-                 repostedTweets: arrayUnion(tweetId),
-               });
-     
-               const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-               await updateDoc(tweetDocRef, {
-                 Reposts: increment(1)
-               })
-             } catch (e) {
-               console.error("Error adding tweet to user's liked tweets: ", e);
-             }
-           };
- 
-           const addToBookmarks = async (userId, tweetId) => {
-             try {
-               const userDocRef = doc(usersCollectionRef, userId);
+          const addToBookmarks = async (userId, tweetId) => {
+            try {
+              let tweetCollectionRef;
+              if (tweetType === 'imageTweet') {
+                tweetCollectionRef = doc(collection(database, "imagetweets"), tweetId);
+              } else if (tweetType === 'poolTweet') {
+                tweetCollectionRef = doc(collection(database, "pooltweets"), tweetId);
+              } else {
+                tweetCollectionRef = doc(collection(database, "tweets"), tweetId);
+              }
+
+              const userDocRef = doc(usersCollectionRef, userId);
            
                // Check if user has already liked the tweet
                const userDocSnapshot = await getDoc(userDocRef);
@@ -396,74 +419,89 @@ const TweetComponent = () => {
                if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(tweetId)) {
                  console.log("User has already liked this tweet.");
            
-                 // Remove the tweetId from user's liked tweets
+                 // Remove the tweetId from user's reposted tweets
                  await updateDoc(userDocRef, {
-                   bookmarkedTweets: arrayRemove(tweetId),
-                 });
+                  bookmarkedTweets: arrayRemove(tweetId),
+                });
+          
+                // Decrease the repost count
+                await updateDoc(tweetCollectionRef, {
+                  Bookmarks: increment(-1)
+                });
+          
+                console.log("Tweet removed from user's bookmarked tweets");
+          
+                return; // Exit the function
+              }
+          
+              // Add the tweet to user's reposted tweets
+              await updateDoc(userDocRef, {
+                bookmarkedTweets: arrayUnion(tweetId),
+              });
+          
+              // Increase the repost count
+              await updateDoc(tweetCollectionRef, {
+                Bookmarks: increment(1)
+              });
+          
+              console.log("Tweet added to user's reposted tweets");
+            } catch (e) {
+              console.error("Error reposting tweet: ", e);
+            }
+          };
  
-                 const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-                 await updateDoc(tweetDocRef, {
-                   Bookmarks: increment(-1)
-                 })
-           
-                 console.log("Tweet removed from user's liked tweets");
-                 
-                 return; // Exit the function
-               }
-           
-               // Add the tweet to user's liked tweets
-               await updateDoc(userDocRef, {
-                 bookmarkedTweets: arrayUnion(tweetId),
-               });
-     
-               const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-               await updateDoc(tweetDocRef, {
-                 Bookmarks: increment(1)
-               })
-             } catch (e) {
-               console.error("Error adding tweet to user's liked tweets: ", e);
-             }
-           };
  
  
            const addToLikes = async (userId, tweetId) => {
-             try {
-               const userDocRef = doc(usersCollectionRef, userId);
+            try {
+              let tweetCollectionRef;
+              if (tweetType === 'imageTweet') {
+                tweetCollectionRef = doc(collection(database, "imagetweets"), tweetId);
+              } else if (tweetType === 'poolTweet') {
+                tweetCollectionRef = doc(collection(database, "pooltweets"), tweetId);
+              } else {
+                tweetCollectionRef = doc(collection(database, "tweets"), tweetId);
+              }
+
+              const userDocRef = doc(usersCollectionRef, userId);
            
                // Check if user has already liked the tweet
                const userDocSnapshot = await getDoc(userDocRef);
                const userData = userDocSnapshot.data();
-               if (userData && userData.likedTweets && userData.likedTweets.includes(tweetId)) {
+               if (userData && userData.LikedTweets && userData.LikedTweets.includes(tweetId)) {
                  console.log("User has already liked this tweet.");
            
-                 // Remove the tweetId from user's liked tweets
-                 await updateDoc(userDocRef, {
-                   likedTweets: arrayRemove(tweetId),
-                 });
- 
-                 const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-                 await updateDoc(tweetDocRef, {
-                   Likes: increment(-1)
-                 })
-           
-                 console.log("Tweet removed from user's liked tweets");
-                 
-                 return; // Exit the function
-               }
-           
-               // Add the tweet to user's liked tweets
-               await updateDoc(userDocRef, {
-                 likedTweets: arrayUnion(tweetId),
-               });
-     
-               const tweetDocRef = doc(collection(database, "tweets"), tweetId);
-               await updateDoc(tweetDocRef, {
-                 Likes: increment(1)
-               })
-             } catch (e) {
-               console.error("Error adding tweet to user's liked tweets: ", e);
-             }
-           };
+                  // Remove the tweetId from user's reposted tweets
+                  await updateDoc(userDocRef, {
+                    LikedTweets: arrayRemove(tweetId),
+                  });
+            
+                  // Decrease the repost count
+                  await updateDoc(tweetCollectionRef, {
+                    Likes: increment(-1)
+                  });
+            
+                  console.log("Tweet removed from user's reposted tweets");
+            
+                  return; // Exit the function
+                }
+            
+                // Add the tweet to user's reposted tweets
+                await updateDoc(userDocRef, {
+                  LikedTweets: arrayUnion(tweetId),
+                });
+            
+                // Increase the repost count
+                await updateDoc(tweetCollectionRef, {
+                  Likes: increment(1)
+                });
+            
+                console.log("Tweet added to user's reposted tweets");
+              } catch (e) {
+                console.error("Error reposting tweet: ", e);
+              }
+            };
+   
 
            
 
