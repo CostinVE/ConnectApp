@@ -6,6 +6,7 @@ export const body = {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'center',
+    overflow:'hidden'
   };
   
 
