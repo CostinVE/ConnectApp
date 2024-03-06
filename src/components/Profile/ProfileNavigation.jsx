@@ -20,6 +20,41 @@ import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
 import { getUserByUserID } from "../getUserByUsername";
 
 
+export const ProfileNavigation = () => {
+  const [selectedOption, setSelectedOption] = useState('Posts');
+  const userID = auth?.currentUser?.uid;
+  const navigate = useNavigate();
+
+  const handleClick = (option) => {
+    let path;
+    switch (option) {
+      case 'Posts':
+        path = `/ConnectApp/Profile/Posts`;
+        break;
+      case 'Media':
+        path = `/ConnectApp/Profile/Media`;
+        break;
+      case 'Bookmarks':
+        path = `/ConnectApp/Profile/Bookmarks`;
+        break;
+      default:
+        path = `/ConnectApp/Profile/Posts`;
+    }
+    setSelectedOption(option);
+    window.location.href = path; // Replace the current URL
+    console.log(`Navigation switched to ${option}`);
+  };
+
+  return (
+    <div className="flex flex-row justify-evenly w-full">
+      <p onClick={() => handleClick('Posts')} className={selectedOption === 'Posts' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Posts</p>
+      <p onClick={() => handleClick('Media')} className={selectedOption === 'Media' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Media</p>
+      <p onClick={() => handleClick('Bookmarks')} className={selectedOption === 'Bookmarks' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Bookmarks</p>
+    </div>
+  );
+};
+
+
 export const fetchUserPosts = async () => {
 
   const usersCollectionRef = collection(database, "Users");
@@ -234,30 +269,4 @@ export const fetchUserPosts = async () => {
       console.error("Error fetching user posts:", error);
       return null;
   }
-};
-
-
-
-export const ProfileNavigation = () => {
-  const [selectedOption, setSelectedOption] = useState('Posts');
-  const userID = auth?.currentUser?.uid;
-
-  const handleClick = (option) => {
-    setSelectedOption(option);
-    console.log(`Navigation switched to ${option}`);
-
-    // Trigger FetchUserPosts only when 'Posts' is selected
-    if (option === 'Posts') {
-      fetchUserPosts();
-    }
-  };
-
-  return (
-    <div className="flex flex-row justify-evenly w-full">
-      <p onClick={() => handleClick('Posts')} className={selectedOption === 'Posts' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Posts</p>
-      <p onClick={() => handleClick('Following')} className={selectedOption === 'Following' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Following</p>
-      <p onClick={() => handleClick('Media')} className={selectedOption === 'Media' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Media</p>
-      <p onClick={() => handleClick('Bookmarks')} className={selectedOption === 'Bookmarks' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Bookmarks</p>
-    </div>
-  );
 };

@@ -11,7 +11,6 @@ import { Sidebar } from "./components/Sidebar";
 import { ChooseUsername } from "./components/ChooseUsername"; 
 import { ProfilePage } from "./components/Profile/ProfilePage";
 import { BookmarksFeed } from "./components/Profile/BookmarksFeed";
-import { IndividualPost } from "./components/Profile/IndividualPost";
 import ImageUploadForm from "./components/FeedComponents/ImageUploadForm";
 import PoolUploadForm from "./components/FeedComponents/PoolUploadForm";
 
@@ -65,10 +64,6 @@ const router = createBrowserRouter([
   {
     path: "/ConnectApp/Bookmarks",
     element: <Layout><Sidebar/><BookmarksFeed/></Layout>, // Update import path
-  },
-  {
-    path: "/ConnectApp/tweets/*",
-    element: <Layout><Sidebar/><IndividualPost/></Layout>, // Update import path
   },
   {
     path: "/ConnectApp/ImagePost",

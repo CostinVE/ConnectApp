@@ -17,7 +17,9 @@ export const ChooseUsername = () => {
         Username: username,
         likedTweets: [] ,
         bookmarkedTweets: [],
-        repostedTweets: []
+        repostedTweets: [],
+        Posts:[],
+        Media:[]
       });
       console.log('Document written with ID: ', docRef.id);
     } catch (e) {

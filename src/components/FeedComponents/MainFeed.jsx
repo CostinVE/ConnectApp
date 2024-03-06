@@ -79,11 +79,14 @@ export const MainFeed = () => {
           UserName: user.username,
         })
   
-        // Update the PostRef collection with the document ID
-        const PostRef = doc(database, "Users", userID); // Reference to the document in the Users collection corresponding to the current user
-        await updateDoc(PostRef, {
-          Posts: arrayUnion(newPostID)
-        });
+         // Retrieve the ID of the newly created post
+         const newPostID = newPostRef.id;
+
+         // Update the PostRef collection with the document ID
+         const userRef = doc(database, "Users", userID); // Reference to the document in the Users collection corresponding to the current user
+         await updateDoc(userRef, {
+             Posts: arrayUnion(newPostID)
+         });
   
         // Clear the input field after posting
         setNewPost('');

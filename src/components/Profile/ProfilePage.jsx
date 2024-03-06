@@ -7,20 +7,50 @@ import backgroundIMG from "../../assets/backgroundplaceholder.jpg";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLeftLong } from '@fortawesome/free-solid-svg-icons';
 import { faCalendar } from '@fortawesome/free-regular-svg-icons';
+import { faHeart, faRepeat, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faComment, faBookmark } from "@fortawesome/free-regular-svg-icons";
 
 import { auth, storage, database} from '../../config/firebase'; // Import auth from firebase config
+import {
+    collection,
+    addDoc,
+    Timestamp,
+    getDocs,
+    doc,
+    arrayUnion, arrayRemove,
+    updateDoc, getDoc , increment, FieldValue
+  } from "firebase/firestore";
 import {ref, uploadBytes, getDownloadURL, deleteObject,} from 'firebase/storage'
 import { getUserByUserID } from '../getUserByUsername';
-import { ProfileNavigation, fetchUserPosts } from './ProfileNavigation';
 
 export const ProfilePage = () => {
 
     const userID = auth?.currentUser?.uid;
 
+    const [selectedOption, setSelectedOption] = useState('Posts');
     const [imageUpload, setImageUpload] = useState(null);
     const [username, setUsername] = useState()
     const [creationTime, setCreationTime] = useState(null);
 
+    const [userPostsHTML, setUserPostsHTML] = useState([]); // State variable to hold the HTML elements of user posts
+
+
+    const handleChangeOption = (option) => {
+        switch (option) {
+            case 'Posts':
+                console.log(`navigation switched to ${option}`);
+                break;
+            case 'Media':
+                console.log(`navigation switched to ${option}`);
+                break;
+            case 'Bookmarks':
+                console.log(`navigation switched to ${option}`);
+                break;
+            default:
+                console.error(`Unhandled option: ${option}`);
+        }
+        setSelectedOption(option);
+    };
 
     const navigate = useNavigate()
 
@@ -32,26 +62,9 @@ export const ProfilePage = () => {
    
     console.log(userID)
 
-    // Code to fetch user data and other functionalities...
 
-    const [userPostsHTML, setUserPostsHTML] = useState([]); // State variable to hold the HTML elements of user posts
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const posts = await fetchUserPosts(); // Call the async function to fetch user posts
-                if (posts) {
-                    setUserPostsHTML(posts); // Update the state with the HTML elements of user posts if posts is not null
-                }
-            } catch (error) {
-                console.error("Error fetching user posts:", error);
-            }
-        };
     
-        fetchData(); // Invoke the async function to fetch user posts when the component mounts
-    }, []);
-    
-
     const generateTimestamp = () => {
         return Timestamp.now(); // This will give you the current timestamp
       };
@@ -157,14 +170,219 @@ export const ProfilePage = () => {
     };
 
     getDownloadURL(ref(storage, `profileimages/${userID}`))
-  .then((url) => {
-     
-    const img = document.getElementById('ProfileIMG')
-    img.setAttribute('src', url)
-    .catch((error) => {
+    .then((url) => {
+       
+      const img = document.getElementById('ProfileIMG')
+      img.setAttribute('src', url)
+      .catch((error) => {
+      })
+    
     })
   
-  })
+   
+    const fetchUserPosts = async () => {
+        const usersCollectionRef = collection(database, "Users");
+        const userID = auth.currentUser.uid;
+    
+        try {
+            const formattedDate = (timestamp) => {
+                const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+                const timeString = new Date(timestamp * 1000).toLocaleTimeString('en-US', options);
+                const options2 = { day: '2-digit', month: '2-digit' };
+                const dateString = new Date(timestamp * 1000).toLocaleDateString('en-US', options2);
+                return `${timeString}, ${dateString}`;
+            };
+    
+            const UserRef = doc(database, "Users", userID);
+            const userDoc = await getDoc(UserRef);
+            const userData = userDoc.data();
+            const userPosts = [
+                ...(userData?.Posts || []).reverse(), // Reverse the order of userData?.Posts
+                ...(userData?.repostedTweets || []).reverse() // Reverse the order of userData?.repostedTweets
+            ];
+            console.log("User Posts:", userPosts);
+    
+            const postsHTML = await Promise.all(userPosts.map(async postID => {
+                try {
+                    const username = userDoc.data().Username;
+    
+                    const PostRef = doc(database, "tweets", postID);
+                    const postDoc = await getDoc(PostRef);
+                    const postData = postDoc.data();
+    
+                    if (postDoc.exists()) {
+                        const isRepost = userData?.repostedTweets && userData.repostedTweets.includes(postID);
+    
+                        // Function to render additional information if it's a repost
+                        const renderRepostInfo = () => {
+                            if (isRepost) {
+                                return <p className="opacity-50">{username} reposted this</p>;
+                            }
+                            return null;
+                        };
+    
+                        const addToReposts = async (userId, postID) => {
+                            try {
+                                const userDocRef = doc(usersCollectionRef, userId);
+                                const userDocSnapshot = await getDoc(userDocRef);
+                                const userData = userDocSnapshot.data();
+                                if (userData && userData.repostedTweets && userData.repostedTweets.includes(postID)) {
+                                    console.log("User has already reposted this tweet.");
+                                    await updateDoc(userDocRef, {
+                                        repostedTweets: arrayRemove(postID),
+                                    });
+                                    const tweetDocRef = doc(collection(database, "tweets"), postID);
+                                    await updateDoc(tweetDocRef, {
+                                        Reposts: increment(-1)
+                                    });
+                                    console.log("Tweet removed from user's reposted tweets");
+                                } else {
+                                    await updateDoc(userDocRef, {
+                                        repostedTweets: arrayUnion(postID),
+                                    });
+                                    const tweetDocRef = doc(collection(database, "tweets"), postID);
+                                    await updateDoc(tweetDocRef, {
+                                        Reposts: increment(1)
+                                    });
+                                }
+                            } catch (e) {
+                                console.error("Error adding tweet to user's reposted tweets: ", e);
+                            }
+                        };
+    
+                        const addToBookmarks = async (userId, postID) => {
+                            try {
+                                const userDocRef = doc(usersCollectionRef, userId);
+                                const userDocSnapshot = await getDoc(userDocRef);
+                                const userData = userDocSnapshot.data();
+                                if (userData && userData.bookmarkedTweets && userData.bookmarkedTweets.includes(postID)) {
+                                    console.log("User has already bookmarked this tweet.");
+                                    await updateDoc(userDocRef, {
+                                        bookmarkedTweets: arrayRemove(postID),
+                                    });
+                                    const tweetDocRef = doc(collection(database, "tweets"), postID);
+                                    await updateDoc(tweetDocRef, {
+                                        Bookmarks: increment(-1)
+                                    });
+                                    console.log("Tweet removed from user's bookmarked tweets");
+                                } else {
+                                    await updateDoc(userDocRef, {
+                                        bookmarkedTweets: arrayUnion(postID),
+                                    });
+                                    const tweetDocRef = doc(collection(database, "tweets"), postID);
+                                    await updateDoc(tweetDocRef, {
+                                        Bookmarks: increment(1)
+                                    });
+                                }
+                            } catch (e) {
+                                console.error("Error adding tweet to user's bookmarked tweets: ", e);
+                            }
+                        };
+    
+                        const addToLikes = async (userId, postID) => {
+                            try {
+                                const userDocRef = doc(usersCollectionRef, userId);
+                                const userDocSnapshot = await getDoc(userDocRef);
+                                const userData = userDocSnapshot.data();
+                                if (userData && userData.likedTweets && userData.likedTweets.includes(postID)) {
+                                    console.log("User has already liked this tweet.");
+                                    await updateDoc(userDocRef, {
+                                        likedTweets: arrayRemove(postID),
+                                    });
+                                    const tweetDocRef = doc(collection(database, "tweets"), postID);
+                                    await updateDoc(tweetDocRef, {
+                                        Likes: increment(-1)
+                                    });
+                                    console.log("Tweet removed from user's liked tweets");
+                                } else {
+                                    await updateDoc(userDocRef, {
+                                        likedTweets: arrayUnion(postID),
+                                    });
+                                    const tweetDocRef = doc(collection(database, "tweets"), postID);
+                                    await updateDoc(tweetDocRef, {
+                                        Likes: increment(1)
+                                    });
+                                }
+                            } catch (e) {
+                                console.error("Error adding tweet to user's liked tweets: ", e);
+                            }
+                        };
+    
+                        return (
+                            <section key={postID} className="post">
+                                <div className="flex-col p-3 Shadow">
+                                    <div className="flex flex-row my-5">
+                                        <p className="lato-bold">{postData.UserName}</p>
+                                    </div>
+                                    <p className="flex flex-col my-5">{postData.Post}</p>
+                                    <p className="opacity-50">{formattedDate(postData.Timestamp.seconds)}</p>
+                                    <div className="flex flex-row w-full justify-evenly">
+                                        <p>
+                                            <FontAwesomeIcon
+                                                icon={faRepeat}
+                                                rotation={90}
+                                                style={{ color: "#28d74b", cursor: "pointer" }}
+                                                onClick={() => addToReposts(userID, postID)} // Call addToReposts
+                                            />{" "}
+                                            {postData.Reposts}
+                                        </p>
+                                        <p>
+                                            <FontAwesomeIcon
+                                                icon={faHeart}
+                                                style={{ color: "#e60f4f", cursor: "pointer" }}
+                                                onClick={() => addToLikes(userID, postID)} // Call addToLikes with tweet id
+                                            />{" "}
+                                            {postData.Likes}
+                                        </p>
+                                        <p>
+                                            <FontAwesomeIcon
+                                                icon={faBookmark}
+                                                style={{ color: "#3f44d9", cursor: "pointer" }}
+                                                onClick={() => addToBookmarks(userID, postID)} // Call addToBookMarks
+                                            />{" "}
+                                            {postData.Bookmarks}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+                        );
+                    } else {
+                        console.log("Post not found for ID:", postID);
+                        return null;
+                    }
+                } catch (error) {
+                    console.error("Error processing post:", error);
+                    return null;
+                }
+            }));
+    
+            // Render the HTML for posts
+            return postsHTML;
+        } catch (error) {
+            console.error("Error fetching user posts:", error);
+        }
+    };
+    
+
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const posts = await fetchUserPosts(); // Call the async function to fetch user posts
+            if (posts) {
+                console.log("Fetching data...");
+console.log("Posts fetched:", posts);
+console.log("Setting user posts HTML...");
+                setUserPostsHTML(posts); // Update the state with the HTML elements of user posts if posts is not null
+            }
+        } catch (error) {
+            console.error("Error fetching user posts:", error);
+        }
+    };
+
+    fetchData(); // Invoke the async function to fetch user posts when the component mounts
+}, []);
+
+
 
 
 
@@ -223,15 +441,21 @@ export const ProfilePage = () => {
                 </p>
             </section>
             <nav className='flex items-center justify-between bg-white z-20 my-6'>
-                <ProfileNavigation/>
+            <div className="flex flex-row justify-evenly w-full">
+            <p onClick={() => handleChangeOption('Posts')} className={selectedOption === 'Posts' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Posts</p>
+      <p onClick={() => handleChangeOption('Media')} className={selectedOption === 'Media' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Media</p>
+      <p onClick={() => handleChangeOption('Bookmarks')} className={selectedOption === 'Bookmarks' ? 'selected border-b-4 border-indigo-500 rounded-sm' : ''} style={{ cursor: "pointer" }}>Bookmarks</p>
+    </div>
             </nav>
-            <section className="flex-col w-full">
-            {userPostsHTML && userPostsHTML.map((postHTML, index) => (
-                <div key={index} className="post">
-                    {postHTML}
-                </div>
-            ))}
-            </section>
+            {selectedOption === 'Posts' && (
+    <section className="flex-col w-full">
+        {userPostsHTML && userPostsHTML.map((postHTML, index) => (
+            <div key={index} className="post">
+                {postHTML}
+            </div>
+        ))}
+    </section>
+)}
         </div>
     );
 }
