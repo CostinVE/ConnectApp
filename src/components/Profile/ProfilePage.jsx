@@ -927,7 +927,7 @@ export const ProfilePage = () => {
       <section className="flex-col w-full mt-4 justify-between bg-white p-3 bottom-0 left-0 bg-white rounded-lg ">
         <br></br>
         <div className="flex justify-between">
-          <h3 className="lato-bold"> &nbsp;&nbsp; {username}1</h3>
+          <h3 className="lato-bold"> &nbsp;&nbsp; {username}</h3>
           <button className="p-1 rounded-r-full rounded-l-full bg-white hover:bg-indigo-300 text-base">
             Set up profile
           </button>
